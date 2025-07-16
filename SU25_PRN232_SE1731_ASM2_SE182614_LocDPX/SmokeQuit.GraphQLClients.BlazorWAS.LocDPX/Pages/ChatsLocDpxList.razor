@@ -1,0 +1,367 @@
+﻿@* Updated ChatsLocDpxList.razor with JWT Authorization *@
+@page "/chats"
+@attribute [Authorize]
+@inject GraphQLConsumer GraphQLConsumer
+@inject JwtAuthService JwtAuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using Microsoft.JSInterop
+@using Microsoft.AspNetCore.Authorization
+@using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Models
+@using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.GraphQLClients
+@using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
+
+<PageTitle>Chats - SmokeQuit</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <i class="bi bi-chat-dots text-primary me-2"></i>Chat Management
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-shield-check text-success"></i> 
+                        Authenticated as @JwtAuthService.CurrentUser?.FullName
+                    </p>
+                </div>
+                <button class="btn btn-primary" @onclick="ShowCreateModal">
+                    <i class="bi bi-plus-circle"></i> New Chat
+                </button>
+            </div>
+
+            <!-- JWT Token Info (for debugging - remove in production) -->
+            @if (showTokenInfo)
+            {
+                <div class="alert alert-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>JWT Token Info:</strong><br />
+                            <small>User ID: @JwtAuthService.GetClaim("nameid")</small><br />
+                            <small>Role: @JwtAuthService.GetClaim("role")</small><br />
+                            <small>Expires: @GetTokenExpiration()</small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => showTokenInfo = false">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+
+            <!-- Rest of your existing chat list implementation -->
+            <!-- Search Filter -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Message</label>
+                            <input type="text" class="form-control" @bind="searchRequest.Message" placeholder="Search message..." />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Sent By</label>
+                            <select class="form-select" @bind="searchRequest.SentBy">
+                                <option value="">All</option>
+                                <option value="User">User</option>
+                                <option value="Coach">Coach</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Message Type</label>
+                            <input type="text" class="form-control" @bind="searchRequest.MessageType" placeholder="Message type..." />
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button class="btn btn-outline-primary me-2" @onclick="SearchChats">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                            <button class="btn btn-outline-secondary me-2" @onclick="ClearSearch">
+                                <i class="bi bi-arrow-clockwise"></i> Clear
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" @onclick="() => showTokenInfo = !showTokenInfo">
+                                <i class="bi bi-info-circle"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Your existing chat table implementation continues here... -->
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading chats...</p>
+                </div>
+            }
+            else if (chats?.Any() == true)
+            {
+                <!-- Your existing table implementation -->
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No chats found.
+                    @if (!JwtAuthService.IsAuthenticated)
+                    {
+                        <br /><small class="text-muted">Please ensure you're logged in to view chats.</small>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ChatsLocDpx> chats = new();
+    private PaginationResult<ChatsLocDpx>? paginationResult;
+    private ClassSearchChatsRequestInput searchRequest = new() { CurrentPage = 1, PageSize = 10 };
+    private bool isLoading = true;
+    private bool showTokenInfo = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChats();
+        await LoadCoaches();
+    }
+
+    private async Task LoadChats()
+    {
+        if (!JwtAuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            paginationResult = await GraphQLConsumer.GetChatsLocDpxesWithPagination(searchRequest);
+            chats = paginationResult?.items ?? new List<ChatsLocDpx>();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await JwtAuthService.LogoutAsync();
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading chats: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetTokenExpiration()
+    {
+        try
+        {
+            var exp = JwtAuthService.GetClaim("exp");
+            if (long.TryParse(exp, out long expUnix))
+            {
+                var expDate = DateTimeOffset.FromUnixTimeSeconds(expUnix).ToLocalTime();
+                return expDate.ToString("MM/dd/yyyy HH:mm:ss");
+            }
+        }
+        catch { }
+        return "Unknown";
+    }
+
+    // Rest of your existing methods...
+    private async Task SearchChats()
+    {
+        searchRequest.CurrentPage = 1;
+        await LoadChats();
+    }
+
+    private async Task ClearSearch()
+    {
+        searchRequest = new ClassSearchChatsRequestInput { CurrentPage = 1, PageSize = 10 };
+        await LoadChats();
+    }
+
+    private void ShowCreateModal()
+    {
+        Navigation.NavigateTo("/chats/create");
+    }
+}
+
+@* Updated CoachesLocDpxList.razor with JWT Authorization *@
+@page "/coaches"
+@attribute [Authorize]
+@inject GraphQLConsumer GraphQLConsumer
+@inject JwtAuthService JwtAuthService
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Authorization
+@using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Models
+@using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.GraphQLClients
+@using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
+
+<PageTitle>Coaches - SmokeQuit</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        <i class="bi bi-people text-primary me-2"></i>Coaches Directory
+                    </h2>
+                    <p class="text-muted mb-0">
+                        <i class="bi bi-shield-check text-success"></i> 
+                        Viewing as @JwtAuthService.CurrentUser?.FullName
+                    </p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-secondary me-2" @onclick="RefreshCoaches">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                    @if (coaches?.Any() == true)
+                    {
+                        <span class="badge bg-info">@coaches.Count coaches</span>
+                    }
+                </div>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading coaches...</p>
+                </div>
+            }
+            else if (coaches?.Any() == true)
+            {
+                <div class="row">
+                    @foreach (var coach in coaches)
+                    {
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 coach-card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="avatar-circle me-3">
+                                            <i class="bi bi-person-fill"></i>
+                                        </div>
+                                        <div>
+                                            <h5 class="card-title mb-1">@coach.FullName</h5>
+                                            <span class="badge bg-primary">
+                                                <i class="bi bi-patch-check-fill"></i> Certified Coach
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Your existing coach details implementation -->
+                                </div>
+                                
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="bi bi-hash"></i>@coach.CoachesLocDpxid
+                                        </small>
+                                        <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewCoachDetails(coach)">
+                                            <i class="bi bi-eye"></i> View Details
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No coaches found.
+                    @if (!JwtAuthService.IsAuthenticated)
+                    {
+                        <br /><small class="text-muted">Please ensure you're logged in to view coaches.</small>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Your existing coach details modal -->
+
+<style>
+    .coach-card {
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .coach-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .avatar-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+</style>
+
+@code {
+    private List<CoachesLocDpx> coaches = new();
+    private CoachesLocDpx? selectedCoach = null;
+    
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     await LoadCoaches();
+    // }
+
+    private async Task LoadCoaches()
+    {
+        if (!JwtAuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            coaches = await GraphQLConsumer.GetCoachesLocDpxes();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await JwtAuthService.LogoutAsync();
+            Navigation.NavigateTo("/login");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading coaches: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshCoaches()
+    {
+        await LoadCoaches();
+    }
+
+    private void ViewCoachDetails(CoachesLocDpx coach)
+    {
+        selectedCoach = coach;
+    }
+
+    private void CloseModal()
+    {
+        selectedCoach = null;
+    }
+}

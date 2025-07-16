@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36203.30
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.Repository.LocDPX", "..\..\ASM2\SU25_PRN232_SE1731_ASM2_SE182614_LocDPX\SmokeQuit.Repository.LocDPX\SmokeQuit.Repository.LocDPX.csproj", "{E4127833-FF4F-E21A-2A93-9F05BB19A23D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.Services.LocDPX", "..\..\ASM2\SU25_PRN232_SE1731_ASM2_SE182614_LocDPX\SmokeQuit.Services.LocDPX\SmokeQuit.Services.LocDPX.csproj", "{2A8F011F-A793-CE4D-9C37-9E9F6D4A2B7E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.GrpcService.LocDpx", "SmokeQuit.GrpcService.LocDpx\SmokeQuit.GrpcService.LocDpx.csproj", "{80EF2BD5-858C-4A02-8189-80F60B11ED78}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.GrpcClients.ConsoleApp.LocDpx", "SmokeQuit.GrpcClients.ConsoleApp.LocDpx\SmokeQuit.GrpcClients.ConsoleApp.LocDpx.csproj", "{382F5CB9-6581-4DAE-840A-070DDC652F3D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E4127833-FF4F-E21A-2A93-9F05BB19A23D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4127833-FF4F-E21A-2A93-9F05BB19A23D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4127833-FF4F-E21A-2A93-9F05BB19A23D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4127833-FF4F-E21A-2A93-9F05BB19A23D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A8F011F-A793-CE4D-9C37-9E9F6D4A2B7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A8F011F-A793-CE4D-9C37-9E9F6D4A2B7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A8F011F-A793-CE4D-9C37-9E9F6D4A2B7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A8F011F-A793-CE4D-9C37-9E9F6D4A2B7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80EF2BD5-858C-4A02-8189-80F60B11ED78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80EF2BD5-858C-4A02-8189-80F60B11ED78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80EF2BD5-858C-4A02-8189-80F60B11ED78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80EF2BD5-858C-4A02-8189-80F60B11ED78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{382F5CB9-6581-4DAE-840A-070DDC652F3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{382F5CB9-6581-4DAE-840A-070DDC652F3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{382F5CB9-6581-4DAE-840A-070DDC652F3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{382F5CB9-6581-4DAE-840A-070DDC652F3D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DAEE7CC7-8B7B-4327-A4C9-53BAE2D1429A}
+	EndGlobalSection
+EndGlobal

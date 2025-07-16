@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- REMOVE Authentication.Cookies - Built into .NET 8 -->
+		<!-- REMOVE AspNetCore.Mvc - Built into .NET 8 -->
+
+		<!-- Razor Runtime Compilation - KEEP -->
+		<PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="8.0.11" />
+
+		<!-- Entity Framework Tools - KEEP -->
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.11">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+
+		<!-- Code Generation - KEEP -->
+		<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
+
+		<!-- JSON Handling - KEEP -->
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+
+		<!-- Pagination - KEEP -->
+		<PackageReference Include="X.PagedList.Mvc.Core" Version="10.5.7" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\SmokeQuit.Repositories.LocDPX\SmokeQuit.Repositories.LocDPX.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Remove="Views\ChatPage\" />
+		<Folder Remove="Views\CoachesPage\" />
+	</ItemGroup>
+</Project>

@@ -1,0 +1,6 @@
+@SmokeQuit.CoachesLocDpx.Microservices.LocDpx_HostAddress = http://localhost:5211
+
+GET {{SmokeQuit.CoachesLocDpx.Microservices.LocDpx_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

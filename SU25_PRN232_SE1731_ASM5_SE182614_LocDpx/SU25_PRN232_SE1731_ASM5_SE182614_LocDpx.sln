@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36203.30
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.BusinessObject.Shared.LocDpx", "SmokeQuit.BusinessObject.Shared.ChatsLocDpx\SmokeQuit.BusinessObject.Shared.LocDpx.csproj", "{565C1501-7695-4C5A-B162-F3E4B5F55D15}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.Common.Shared.LocDpx", "SmokeQuit.Common.Shared.LocDpx\SmokeQuit.Common.Shared.LocDpx.csproj", "{3E39BC4A-6EF2-4F66-8330-D671DC7B20B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.OcelotAPIGateway.LocDpx", "SmokeQuit.OcelotAPIGateway.LocDpx\SmokeQuit.OcelotAPIGateway.LocDpx.csproj", "{A77520E2-1773-4767-ACFA-762AEB32F2EF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.ChatsLocDpx.Microservices.LocDpx", "SmokeQuit.ChatsLocDpx.Microservices.LocDpx\SmokeQuit.ChatsLocDpx.Microservices.LocDpx.csproj", "{CC2F9370-3573-4D58-BC60-A392772FE755}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.CoachesLocDpx.Microservices.LocDpx", "SmokeQuit.CoachesLocDpx.Microservices.LocDpx\SmokeQuit.CoachesLocDpx.Microservices.LocDpx.csproj", "{DF05F98B-38F8-4FAF-A30B-8F23618CEAAC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmokeQuit.Maui.LocDpx", "SmokeQuit.Maui.LocDpx\SmokeQuit.Maui.LocDpx.csproj", "{A8C43B93-5901-4A68-97A1-36A86C5869EA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{565C1501-7695-4C5A-B162-F3E4B5F55D15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{565C1501-7695-4C5A-B162-F3E4B5F55D15}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{565C1501-7695-4C5A-B162-F3E4B5F55D15}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{565C1501-7695-4C5A-B162-F3E4B5F55D15}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E39BC4A-6EF2-4F66-8330-D671DC7B20B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E39BC4A-6EF2-4F66-8330-D671DC7B20B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E39BC4A-6EF2-4F66-8330-D671DC7B20B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E39BC4A-6EF2-4F66-8330-D671DC7B20B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A77520E2-1773-4767-ACFA-762AEB32F2EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A77520E2-1773-4767-ACFA-762AEB32F2EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A77520E2-1773-4767-ACFA-762AEB32F2EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A77520E2-1773-4767-ACFA-762AEB32F2EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC2F9370-3573-4D58-BC60-A392772FE755}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC2F9370-3573-4D58-BC60-A392772FE755}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC2F9370-3573-4D58-BC60-A392772FE755}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC2F9370-3573-4D58-BC60-A392772FE755}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF05F98B-38F8-4FAF-A30B-8F23618CEAAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF05F98B-38F8-4FAF-A30B-8F23618CEAAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF05F98B-38F8-4FAF-A30B-8F23618CEAAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF05F98B-38F8-4FAF-A30B-8F23618CEAAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8C43B93-5901-4A68-97A1-36A86C5869EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8C43B93-5901-4A68-97A1-36A86C5869EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8C43B93-5901-4A68-97A1-36A86C5869EA}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{A8C43B93-5901-4A68-97A1-36A86C5869EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8C43B93-5901-4A68-97A1-36A86C5869EA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A8C43B93-5901-4A68-97A1-36A86C5869EA}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {47555E1C-4AC1-42EB-8AE2-C82A5C26D6C6}
+	EndGlobalSection
+EndGlobal

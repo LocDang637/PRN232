@@ -1,0 +1,189 @@
+﻿@page "/"
+@using System.Text
+@using System.Text.Json
+
+<EditForm Model="@chatMessage" OnSubmit="async() => await OcelotSubmit()">
+    <div class="col-md-4">
+        <div class="rounded p-3 h-100">
+            <div class="mb-3">
+                <label>User ID:</label>
+                <InputNumber @bind-Value="chatMessage.UserId" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label>Coach ID:</label>
+                <InputNumber @bind-Value="chatMessage.CoachId" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label>Message:</label>
+                <InputText @bind-Value="chatMessage.Message" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label>Sent By:</label>
+                <InputText @bind-Value="chatMessage.SentBy" class="form-control" />
+            </div>
+            <div class="mb-3">
+                <label>Message Type:</label>
+                <InputText @bind-Value="chatMessage.MessageType" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-danger">Send Chat</button>
+            <span class="text-danger">@Message</span>
+        </div>
+    </div>
+</EditForm>
+
+<table class="table table-responsive table-striped table-bordered">
+    <thead class="table-primary">
+        <tr>
+            <th>Chat ID</th>
+            <th>Message</th>
+            <th>Sent By</th>
+            <th>Created At</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in ChatMessages)
+        {
+            <tr>
+                <td>@item.ChatsLocDpxid</td>
+                <td>@item.Message</td>
+                <td>@item.SentBy</td>
+                <td>@item.CreatedAt?.ToString("HH:mm:ss")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    public ChatMessage chatMessage { get; set; } = new();
+    public List<ChatMessage> ChatMessages { get; set; } = new();
+    public string Message { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Initialize with sample data
+        chatMessage.UserId = 1;
+        chatMessage.CoachId = 1;
+        chatMessage.Message = "Hello from mobile app";
+        chatMessage.SentBy = "User";
+        chatMessage.MessageType = "Text";
+        chatMessage.IsRead = false;
+        chatMessage.CreatedAt = DateTime.Now;
+        chatMessage.ResponseTime = DateTime.Now;
+        
+        // Create coach object
+        chatMessage.Coach = new CoachModel
+        {
+            CoachesLocDpxid = 1,
+            FullName = "Dr. Smith",
+            Email = "coach@example.com",
+            PhoneNumber = "123-456-7890",
+            Bio = "Smoking cessation expert",
+            CreatedAt = DateTime.Now
+        };
+    }
+
+    protected async Task OcelotSubmit()
+    {
+        try
+        {
+            var handler = new HttpClientHandler();
+            handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+            
+            using (var httpClient = new HttpClient(handler))
+            {
+                httpClient.Timeout = TimeSpan.FromSeconds(15);
+                
+                var serializeContent = System.Text.Json.JsonSerializer.Serialize(chatMessage);
+                
+                // Try multiple endpoints in order
+                var baseAddresses = new[]
+                {
+                    "http://10.87.59.29:5048/gateway/ChatsLocDpx",
+                    "http://10.0.2.2:5048/gateway/ChatsLocDpx",
+                    "http://localhost:5048/gateway/ChatsLocDpx"
+
+                };
+                
+                Message = $"Starting connection test. JSON: {serializeContent.Substring(0, Math.Min(100, serializeContent.Length))}...";
+                StateHasChanged();
+                await Task.Delay(1000);
+                
+                foreach (var baseAddress in baseAddresses)
+                {
+                    try
+                    {
+                        Message = $"Trying {baseAddress}...";
+                        StateHasChanged();
+                        await Task.Delay(500);
+                        
+                        var response = await httpClient.PostAsync(baseAddress, new StringContent(serializeContent, Encoding.UTF8, "application/json"));
+                        var responseContent = await response.Content.ReadAsStringAsync();
+                        
+                        Message = $"{baseAddress} -> Status: {response.StatusCode}, Content: {responseContent.Substring(0, Math.Min(50, responseContent.Length))}";
+                        StateHasChanged();
+                        await Task.Delay(1000);
+                        
+                        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+                        {
+                            Message = $"SUCCESS! Chat sent via {baseAddress}";
+                            
+                            // Add to display list
+                            var newChat = new ChatMessage
+                            {
+                                ChatsLocDpxid = ChatMessages.Count + 1,
+                                UserId = chatMessage.UserId,
+                                CoachId = chatMessage.CoachId,
+                                Message = chatMessage.Message,
+                                SentBy = chatMessage.SentBy,
+                                MessageType = chatMessage.MessageType,
+                                CreatedAt = DateTime.Now
+                            };
+                            ChatMessages.Add(newChat);
+                            
+                            return; // Success, exit method
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Message = $"ERROR {baseAddress}: {ex.GetType().Name} - {ex.Message}";
+                        StateHasChanged();
+                        await Task.Delay(1000);
+                        continue; // Try next endpoint
+                    }
+                }
+                
+                // If all attempts failed
+                Message = "FAILED: All connection attempts failed. Check if services are running.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"CRITICAL ERROR: {ex.GetType().Name} - {ex.Message}";
+        }
+    }
+
+    public class ChatMessage
+    {
+        public int ChatsLocDpxid { get; set; }
+        public int UserId { get; set; }
+        public int CoachId { get; set; }
+        public string Message { get; set; } = "";
+        public string SentBy { get; set; } = "";
+        public string MessageType { get; set; } = "";
+        public bool IsRead { get; set; }
+        public string AttachmentUrl { get; set; } = "";
+        public DateTime? ResponseTime { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public CoachModel Coach { get; set; } = new();
+    }
+
+    public class CoachModel
+    {
+        public int CoachesLocDpxid { get; set; }
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public string Bio { get; set; } = "";
+        public DateTime? CreatedAt { get; set; }
+    }
+}

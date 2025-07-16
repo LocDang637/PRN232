@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+option csharp_namespace = "SmokeQuit.GrpcService.LocDpx.Protos";
+
+service ChatsLocDpxGRPC{
+	rpc GetAllAsync(EmptyRequest) returns (ChatsLocDpxList);
+	rpc GetByIdAsync(ChatsLocDpxIdRequest) returns (ChatsLocDpx);
+	rpc CreateAsync(ChatsLocDpx) returns (MutationResult);
+	rpc UpdateAsync(ChatsLocDpx) returns (MutationResult);
+	rpc DeleteAsync(ChatsLocDpxIdRequest) returns (MutationResult);
+}
+
+message EmptyRequest {}
+
+message ChatsLocDpxIdRequest {
+	int32 id = 1;
+}
+
+message ChatsLocDpxList {
+	repeated ChatsLocDpx Items = 1;
+}
+
+message MutationResult {
+	int32 result = 1; 
+}
+
+message ChatsLocDpx {
+	int32 chatsLocDpxid = 1;
+  int32 userId = 2;
+  int32 coachId = 3;
+  string message = 4;
+  string sentBy = 5;
+  string messageType = 6;
+  bool isRead = 7;
+  string attachmentUrl = 8;
+  string responseTime = 9;
+  string createdAt = 10;       
+
+
+}
