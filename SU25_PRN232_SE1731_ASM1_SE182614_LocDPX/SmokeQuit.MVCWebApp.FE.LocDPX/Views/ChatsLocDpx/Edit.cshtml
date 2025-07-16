@@ -4,77 +4,231 @@
     ViewData["Title"] = "Edit Chat Message";
 }
 
-<h1>Edit Chat Message</h1>
+<!-- Display error messages -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 
-<hr />
 <div class="row">
-    <div class="col-md-6">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="ChatsLocDpxid" />
-            <input type="hidden" asp-for="UserId" />
-            <input type="hidden" asp-for="CoachId" />
-            <input type="hidden" asp-for="CreatedAt" />
-
-            <div class="form-group mb-3">
-                <label asp-for="UserId" class="control-label">User</label>
-                <select asp-for="UserId" class="form-control" asp-items="ViewBag.UserId" disabled>
-                </select>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-edit text-warning"></i> Edit Chat Message
+                </h4>
+                <small class="text-muted">Message ID: #@Model.ChatsLocDpxid</small>
             </div>
+            <div class="card-body">
+                <form asp-action="Edit" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
-            <div class="form-group mb-3">
-                <label asp-for="CoachId" class="control-label">Coach</label>
-                <select asp-for="CoachId" class="form-control" asp-items="ViewBag.CoachId" disabled>
-                </select>
-            </div>
+                    <!-- Hidden fields for non-editable properties -->
+                    <input type="hidden" asp-for="ChatsLocDpxid" />
+                    <input type="hidden" asp-for="UserId" />
+                    <input type="hidden" asp-for="CoachId" />
+                    <input type="hidden" asp-for="CreatedAt" />
 
-            <div class="form-group mb-3">
-                <label asp-for="Message" class="control-label">Message</label>
-                <textarea asp-for="Message" class="form-control" rows="4"></textarea>
-                <span asp-validation-for="Message" class="text-danger"></span>
-            </div>
+                    <!-- Display non-editable information -->
+                    <div class="alert alert-info" role="alert">
+                        <h6><i class="fas fa-info-circle"></i> Message Information (Cannot be changed)</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>User:</strong>
+                                @if (Model.User != null)
+                                {
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-user"></i> @Model.User.UserName
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Coach:</strong>
+                                @if (Model.Coach != null)
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-user-tie"></i> @Model.Coach.FullName
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">N/A</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <strong>Created:</strong>
+                            @if (Model.CreatedAt.HasValue)
+                            {
+                                <span>@Model.CreatedAt.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">N/A</span>
+                            }
+                        </div>
+                    </div>
 
-            <div class="form-group mb-3">
-                <label asp-for="MessageType" class="control-label">Message Type</label>
-                <select asp-for="MessageType" class="form-control">
-                    <option value="text">Text</option>
-                    <option value="image">Image</option>
-                    <option value="file">File</option>
-                </select>
-                <span asp-validation-for="MessageType" class="text-danger"></span>
-            </div>
+                    <!-- Editable fields -->
+                    <div class="mb-3">
+                        <label asp-for="Message" class="form-label">
+                            <i class="fas fa-comment text-info"></i> Message <span class="text-danger">*</span>
+                        </label>
+                        <textarea asp-for="Message" class="form-control" rows="4"
+                                  placeholder="Enter your message here..." required maxlength="1000"></textarea>
+                        <div class="form-text">
+                            <span id="charCount">0</span>/1000 characters
+                        </div>
+                        <span asp-validation-for="Message" class="text-danger"></span>
+                    </div>
 
-            <div class="form-group mb-3">
-                <label asp-for="SentBy" class="control-label">Sent By</label>
-                <select asp-for="SentBy" class="form-control">
-                    <option value="user">User</option>
-                    <option value="coach">Coach</option>
-                </select>
-                <span asp-validation-for="SentBy" class="text-danger"></span>
-            </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="MessageType" class="form-label">
+                                    <i class="fas fa-tag text-warning"></i> Message Type <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="MessageType" class="form-select" required>
+                                    <option value="">-- Select Type --</option>
+                                    <option value="text">📝 Text</option>
+                                    <option value="image">🖼️ Image</option>
+                                    <option value="file">📎 File</option>
+                                </select>
+                                <span asp-validation-for="MessageType" class="text-danger"></span>
+                            </div>
+                        </div>
 
-            <div class="form-group mb-3">
-                <label asp-for="AttachmentUrl" class="control-label">Attachment URL</label>
-                <input asp-for="AttachmentUrl" class="form-control" />
-                <span asp-validation-for="AttachmentUrl" class="text-danger"></span>
-            </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="SentBy" class="form-label">
+                                    <i class="fas fa-paper-plane text-secondary"></i> Sent By <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="SentBy" class="form-select" required>
+                                    <option value="">-- Select Sender --</option>
+                                    <option value="user">👤 User</option>
+                                    <option value="coach">👨‍💼 Coach</option>
+                                </select>
+                                <span asp-validation-for="SentBy" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="form-check mb-3">
-                <input asp-for="IsRead" class="form-check-input" type="checkbox" />
-                <label asp-for="IsRead" class="form-check-label">Mark as Read</label>
-            </div>
+                    <div class="mb-3" id="attachmentSection">
+                        <label asp-for="AttachmentUrl" class="form-label">
+                            <i class="fas fa-paperclip text-info"></i> Attachment URL
+                        </label>
+                        <input asp-for="AttachmentUrl" class="form-control" type="url"
+                               placeholder="https://example.com/file.jpg" />
+                        <div class="form-text">
+                            Provide URL for images or files. Leave empty for text-only messages.
+                        </div>
+                        <span asp-validation-for="AttachmentUrl" class="text-danger"></span>
+                    </div>
 
-            <div class="form-group mb-3">
-                <label asp-for="ResponseTime" class="control-label">Response Time</label>
-                <input asp-for="ResponseTime" class="form-control" type="datetime-local" />
-                <span asp-validation-for="ResponseTime" class="text-danger"></span>
-            </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3 form-check">
+                                <input asp-for="IsRead" class="form-check-input" type="checkbox" />
+                                <label asp-for="IsRead" class="form-check-label">
+                                    <i class="fas fa-eye text-success"></i> Mark as Read
+                                </label>
+                                <div class="form-text">
+                                    Check this if the message has been read
+                                </div>
+                            </div>
+                        </div>
 
-            <div class="form-group">
-                <input type="submit" value="Save Changes" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="ResponseTime" class="form-label">
+                                    <i class="fas fa-clock text-warning"></i> Response Time
+                                </label>
+                                <input asp-for="ResponseTime" class="form-control" type="datetime-local" />
+                                <div class="form-text">
+                                    When was this message responded to?
+                                </div>
+                                <span asp-validation-for="ResponseTime" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <a asp-action="Details" asp-route-id="@Model.ChatsLocDpxid" class="btn btn-info me-2">
+                                <i class="fas fa-eye"></i> View Details
+                            </a>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                        </div>
+                        <div>
+                            <button type="reset" class="btn btn-outline-warning me-2" id="resetBtn">
+                                <i class="fas fa-undo"></i> Reset Changes
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Edit Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <h6><i class="fas fa-lock text-warning"></i> What Cannot Be Changed:</h6>
+                <ul class="list-unstyled text-muted small">
+                    <li><i class="fas fa-times text-danger"></i> Message creator (User/Coach)</li>
+                    <li><i class="fas fa-times text-danger"></i> Creation date</li>
+                    <li><i class="fas fa-times text-danger"></i> Message ID</li>
+                </ul>
+
+                <h6><i class="fas fa-edit text-success"></i> What Can Be Changed:</h6>
+                <ul class="list-unstyled text-success small">
+                    <li><i class="fas fa-check"></i> Message content</li>
+                    <li><i class="fas fa-check"></i> Message type</li>
+                    <li><i class="fas fa-check"></i> Sender designation</li>
+                    <li><i class="fas fa-check"></i> Attachment URL</li>
+                    <li><i class="fas fa-check"></i> Read status</li>
+                    <li><i class="fas fa-check"></i> Response time</li>
+                </ul>
+
+                <hr />
+
+                <h6><i class="fas fa-lightbulb text-warning"></i> Tips:</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="fas fa-check text-success"></i> Keep messages clear and professional</li>
+                    <li><i class="fas fa-check text-success"></i> Update read status appropriately</li>
+                    <li><i class="fas fa-check text-success"></i> Ensure attachment URLs are valid</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Original vs Current comparison -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-history"></i> Change Tracking</h6>
+            </div>
+            <div class="card-body small">
+                <div id="changeTracking">
+                    <p class="text-muted">Make changes to see what's different...</p>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -82,4 +236,129 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script>
+        $(document).ready(function() {
+            // Store original values for comparison
+            const originalValues = {
+                message: $('#Message').val(),
+                messageType: $('#MessageType').val(),
+                sentBy: $('#SentBy').val(),
+                attachmentUrl: $('#AttachmentUrl').val(),
+                isRead: $('#IsRead').is(':checked'),
+                responseTime: $('#ResponseTime').val()
+            };
+
+            // Character count for message
+            function updateCharCount() {
+                const length = $('#Message').val().length;
+                $('#charCount').text(length);
+
+                if (length > 900) {
+                    $('#charCount').addClass('text-danger').removeClass('text-warning');
+                } else if (length > 800) {
+                    $('#charCount').addClass('text-warning').removeClass('text-danger');
+                } else {
+                    $('#charCount').removeClass('text-warning text-danger');
+                }
+            }
+
+            $('#Message').on('input', updateCharCount);
+            updateCharCount(); // Initial count
+
+            // Show/hide attachment section based on message type
+            function toggleAttachmentSection() {
+                const type = $('#MessageType').val();
+                if (type === 'image' || type === 'file') {
+                    $('#attachmentSection').show();
+                } else {
+                    $('#attachmentSection').show(); // Always show for editing
+                }
+            }
+
+            $('#MessageType').on('change', toggleAttachmentSection);
+            toggleAttachmentSection(); // Initial state
+
+            // Track changes
+            function updateChangeTracking() {
+                const changes = [];
+
+                if ($('#Message').val() !== originalValues.message) {
+                    changes.push('<i class="fas fa-edit text-warning"></i> Message content');
+                }
+                if ($('#MessageType').val() !== originalValues.messageType) {
+                    changes.push('<i class="fas fa-tag text-warning"></i> Message type');
+                }
+                if ($('#SentBy').val() !== originalValues.sentBy) {
+                    changes.push('<i class="fas fa-user text-warning"></i> Sender');
+                }
+                if ($('#AttachmentUrl').val() !== originalValues.attachmentUrl) {
+                    changes.push('<i class="fas fa-paperclip text-warning"></i> Attachment URL');
+                }
+                if ($('#IsRead').is(':checked') !== originalValues.isRead) {
+                    changes.push('<i class="fas fa-eye text-warning"></i> Read status');
+                }
+                if ($('#ResponseTime').val() !== originalValues.responseTime) {
+                    changes.push('<i class="fas fa-clock text-warning"></i> Response time');
+                }
+
+                const trackingDiv = $('#changeTracking');
+                if (changes.length > 0) {
+                    trackingDiv.html('<strong>Changes made:</strong><br>' + changes.join('<br>'));
+                } else {
+                    trackingDiv.html('<p class="text-muted">No changes made yet...</p>');
+                }
+            }
+
+            // Monitor all form fields for changes
+            $('#Message, #MessageType, #SentBy, #AttachmentUrl, #ResponseTime').on('input change', updateChangeTracking);
+            $('#IsRead').on('change', updateChangeTracking);
+
+            // Reset button functionality
+            $('#resetBtn').click(function() {
+                if (confirm('Are you sure you want to reset all changes?')) {
+                    $('#Message').val(originalValues.message);
+                    $('#MessageType').val(originalValues.messageType);
+                    $('#SentBy').val(originalValues.sentBy);
+                    $('#AttachmentUrl').val(originalValues.attachmentUrl);
+                    $('#IsRead').prop('checked', originalValues.isRead);
+                    $('#ResponseTime').val(originalValues.responseTime);
+
+                    updateCharCount();
+                    updateChangeTracking();
+                }
+            });
+
+            // Auto-dismiss alerts
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+
+            // Form validation enhancement
+            $('form').on('submit', function(e) {
+                const message = $('#Message').val().trim();
+                const messageType = $('#MessageType').val();
+                const sentBy = $('#SentBy').val();
+
+                if (!message || !messageType || !sentBy) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields marked with *');
+                    return false;
+                }
+
+                if (message.length > 1000) {
+                    e.preventDefault();
+                    alert('Message cannot exceed 1000 characters');
+                    return false;
+                }
+
+                // Show loading indicator
+                const submitBtn = $(this).find('button[type="submit"]');
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
+            });
+
+            // Initial change tracking
+            updateChangeTracking();
+        });
+    </script>
 }

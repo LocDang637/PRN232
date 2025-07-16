@@ -4,242 +4,435 @@
     ViewData["Title"] = "Chat Message Details";
 }
 
-<h1>Chat Message Details</h1>
-
-<div>
-    <hr />
-    <dl class="row">
-        <dt class="col-sm-3">Message</dt>
-        <dd class="col-sm-9">
-            <div class="card">
-                <div class="card-body">
-                    @Html.DisplayFor(model => model.Message)
-                </div>
-            </div>
-        </dd>
-
-        <dt class="col-sm-3">Message Type</dt>
-        <dd class="col-sm-9">
-            <span class="badge bg-info">@Html.DisplayFor(model => model.MessageType)</span>
-        </dd>
-
-        <dt class="col-sm-3">Sent By</dt>
-        <dd class="col-sm-9">
-            <span class="badge @(Model.SentBy == "user" ? "bg-primary" : "bg-secondary")">
-                @Html.DisplayFor(model => model.SentBy)
-            </span>
-        </dd>
-
-        <dt class="col-sm-3">User</dt>
-        <dd class="col-sm-9">
-            @if (Model.User != null)
-            {
-                <i class="fas fa-user text-primary"></i> 
-                @Html.DisplayFor(model => model.User.UserName)
-            }
-            else
-            {
-                <span class="text-muted">No user assigned</span>
-            }
-        </dd>
-
-        <dt class="col-sm-3">Coach</dt>
-        <dd class="col-sm-9">
-            @if (Model.Coach != null)
-            {
-                <i class="fas fa-user-tie text-success"></i> 
-                @Html.DisplayFor(model => model.Coach.FullName)
-                @if (!string.IsNullOrEmpty(Model.Coach.Email))
-                {
-                    <br />
-            
-                    <small class="text-muted">
-                        <i class="fas fa-envelope"></i>
-                        <a href="mailto:@Model.Coach.Email">@Model.Coach.Email</a>
-                    </small>
-                }
-            }
-            else
-            {
-                <span class="text-muted">No coach assigned</span>
-            }
-        </dd>
-
-        <dt class="col-sm-3">Read Status</dt>
-        <dd class="col-sm-9">
-            @if (Model.IsRead)
-            {
-                <span class="badge bg-success">
-                    <i class="fas fa-check-circle"></i> Read
-                </span>
-            }
-            else
-            {
-                <span class="badge bg-warning">
-                    <i class="fas fa-envelope"></i> Unread
-                </span>
-            }
-        </dd>
-
-        @if (!string.IsNullOrEmpty(Model.AttachmentUrl))
-        {
-            <dt class="col-sm-3">Attachment</dt>
-            <dd class="col-sm-9">
-                <div class="card border-info">
-                    <div class="card-body">
-                        <h6 class="card-title">
-                            <i class="fas fa-paperclip text-info"></i> Attachment Available
-                        </h6>
-                        <a href="@Model.AttachmentUrl" target="_blank" class="btn btn-outline-info btn-sm">
-                            <i class="fas fa-external-link-alt"></i> View Attachment
-                        </a>
-                        <small class="d-block mt-2 text-muted">
-                            URL: @Model.AttachmentUrl
-                        </small>
-                    </div>
-                </div>
-            </dd>
-        }
-
-        <dt class="col-sm-3">Response Time</dt>
-        <dd class="col-sm-9">
-            @if (Model.ResponseTime.HasValue)
-            {
-                <i class="fas fa-clock text-info"></i>
-                @Html.DisplayFor(model => model.ResponseTime)
-                <small class="text-muted d-block">
-                    @if (Model.CreatedAt.HasValue && Model.ResponseTime.HasValue)
-                    {
-                        var responseDelay = Model.ResponseTime.Value - Model.CreatedAt.Value;
-                        if (responseDelay.TotalMinutes < 60)
-                        {
-                            <span class="text-success">Quick response (@((int)responseDelay.TotalMinutes) minutes)</span>
-                        }
-                        else if (responseDelay.TotalHours < 24)
-                        {
-                            <span class="text-warning">Same day response (@((int)responseDelay.TotalHours) hours)</span>
-                        }
-                        else
-                        {
-                            <span class="text-danger">Delayed response (@((int)responseDelay.TotalDays) days)</span>
-                        }
-                    }
-                </small>
-            }
-            else
-            {
-                <span class="text-muted">
-                    <i class="fas fa-hourglass-half"></i> No response yet
-                </span>
-            }
-        </dd>
-
-        <dt class="col-sm-3">Created At</dt>
-        <dd class="col-sm-9">
-            <i class="fas fa-calendar-alt text-primary"></i>
-            @Html.DisplayFor(model => model.CreatedAt)
-            @if (Model.CreatedAt.HasValue)
-            {
-                <small class="text-muted d-block">
-                    @{
-                        var timeAgo = DateTime.Now - Model.CreatedAt.Value;
-                        string timeAgoText = "";
-                        if (timeAgo.TotalMinutes < 60)
-                        {
-                            timeAgoText = $"{(int)timeAgo.TotalMinutes} minutes ago";
-                        }
-                        else if (timeAgo.TotalHours < 24)
-                        {
-                            timeAgoText = $"{(int)timeAgo.TotalHours} hours ago";
-                        }
-                        else
-                        {
-                            timeAgoText = $"{(int)timeAgo.TotalDays} days ago";
-                        }
-                    }
-                    @timeAgoText
-                </small>
-            }
-        </dd>
-
-        <dt class="col-sm-3">Message ID</dt>
-        <dd class="col-sm-9">
-            <span class="badge bg-light text-dark">
-                <i class="fas fa-hashtag"></i> @Model.ChatsLocDpxid
-            </span>
-        </dd>
-    </dl>
-</div>
-
-<!-- Action Buttons -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="btn-group" role="group" aria-label="Message actions">
-            <a asp-action="Edit" asp-route-id="@Model?.ChatsLocDpxid" class="btn btn-warning">
-                <i class="fas fa-edit"></i> Edit Message
-            </a>
-            <a asp-action="Delete" asp-route-id="@Model?.ChatsLocDpxid" class="btn btn-danger">
-                <i class="fas fa-trash-alt"></i> Delete Message
-            </a>
-        </div>
-        <a asp-action="Index" class="btn btn-secondary ms-3">
-            <i class="fas fa-arrow-left"></i> Back to List
-        </a>
-    </div>
-</div>
-
-<!-- Related Actions Card -->
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card border-light">
-            <div class="card-header bg-light">
-                <h6 class="card-title mb-0">
-                    <i class="fas fa-tools"></i> Quick Actions
-                </h6>
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="fas fa-comment-dots text-primary"></i> Chat Message Details
+                </h4>
+                <span class="badge bg-secondary">#@Model.ChatsLocDpxid</span>
             </div>
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-primary">Message Management</h6>
-                        <div class="btn-group-vertical d-grid gap-2">
-                            <a asp-action="Create" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-plus"></i> Create New Message
-                            </a>
-                            @if (Model.User != null)
-                            {
-                                <a asp-action="Index" asp-route-userId="@Model.UserId" class="btn btn-outline-info btn-sm">
-                                    <i class="fas fa-user"></i> View All Messages from @Model.User.UserName
-                                </a>
-                            }
+                <!-- Message Content -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5><i class="fas fa-comment text-info"></i> Message</h5>
+                        <div class="card border-light">
+                            <div class="card-body bg-light">
+                                <p class="mb-0">@Html.DisplayFor(model => model.Message)</p>
+                            </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Message Properties -->
+                <div class="row mb-4">
                     <div class="col-md-6">
-                        <h6 class="text-success">Coach Management</h6>
-                        <div class="btn-group-vertical d-grid gap-2">
-                            @if (Model.Coach != null)
+                        <dl class="row">
+                            <dt class="col-sm-5">
+                                <i class="fas fa-tag text-warning"></i> Type:
+                            </dt>
+                            <dd class="col-sm-7">
+                                <span class="badge bg-info">
+                                    <i class="fas fa-@(Model.MessageType == "text" ? "font" : Model.MessageType == "image" ? "image" : "file-alt")"></i>
+                                    @Html.DisplayFor(model => model.MessageType)
+                                </span>
+                            </dd>
+
+                            <dt class="col-sm-5">
+                                <i class="fas fa-paper-plane text-secondary"></i> Sent By:
+                            </dt>
+                            <dd class="col-sm-7">
+                                <span class="badge @(Model.SentBy == "user" ? "bg-primary" : "bg-success")">
+                                    <i class="fas fa-@(Model.SentBy == "user" ? "user" : "user-tie")"></i>
+                                    @Html.DisplayFor(model => model.SentBy)
+                                </span>
+                            </dd>
+
+                            <dt class="col-sm-5">
+                                <i class="fas fa-eye text-success"></i> Status:
+                            </dt>
+                            <dd class="col-sm-7">
+                                @if (Model.IsRead)
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i> Read
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-envelope"></i> Unread
+                                    </span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+
+                    <div class="col-md-6">
+                        @if (!string.IsNullOrEmpty(Model.AttachmentUrl))
+                        {
+                            <h6><i class="fas fa-paperclip text-info"></i> Attachment</h6>
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-paperclip text-info"></i> Attachment Available
+                                    </h6>
+                                    <a href="@Model.AttachmentUrl" target="_blank" class="btn btn-outline-info btn-sm">
+                                        <i class="fas fa-external-link-alt"></i> View Attachment
+                                    </a>
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            <strong>URL:</strong> <br />
+                                            <code>@Model.AttachmentUrl</code>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Participants -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-users text-primary"></i> Participants</h5>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-user text-primary"></i> User
+                                </h6>
+                                @if (Model.User != null)
+                                {
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user-circle fa-2x text-primary me-3"></i>
+                                        <div>
+                                            <strong>@Html.DisplayFor(model => model.User.UserName)</strong><br />
+                                            <span class="text-muted">@Html.DisplayFor(model => model.User.FullName)</span><br />
+                                            @if (!string.IsNullOrEmpty(Model.User.Email))
+                                            {
+                                                <small>
+                                                    <a href="mailto:@Model.User.Email" class="text-decoration-none">
+                                                        <i class="fas fa-envelope"></i> @Model.User.Email
+                                                    </a>
+                                                </small>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No user assigned</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5><i class="fas fa-user-tie text-success"></i> Coach</h5>
+
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-user-tie text-success"></i> Coach
+                                </h6>
+                                @if (Model.Coach != null)
+                                {
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-user-tie fa-2x text-success me-3"></i>
+                                        <div>
+                                            <strong>@Html.DisplayFor(model => model.Coach.FullName)</strong><br />
+                                            @if (!string.IsNullOrEmpty(Model.Coach.Email))
+                                            {
+                                                <small>
+                                                    <a href="mailto:@Model.Coach.Email" class="text-decoration-none">
+                                                        <i class="fas fa-envelope"></i> @Model.Coach.Email
+                                                    </a>
+                                                </small>
+                                            }
+                                            @if (!string.IsNullOrEmpty(Model.Coach.PhoneNumber))
+                                            {
+                                                <br />
+                                                <small>
+                                                    <a href="tel:@Model.Coach.PhoneNumber" class="text-decoration-none">
+                                                        <i class="fas fa-phone"></i> @Model.Coach.PhoneNumber
+                                                    </a>
+                                                </small>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No coach assigned</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timestamps -->
+                <div class="row">
+                    <div class="col-12">
+                        <h5><i class="fas fa-clock text-info"></i> Timeline</h5>
+
+                        <div class="timeline">
+                            @if (Model.CreatedAt.HasValue)
                             {
-                                <a asp-controller="CoachesLocDpx" asp-action="Details" asp-route-id="@Model.CoachId" class="btn btn-outline-success btn-sm">
-                                    <i class="fas fa-user-tie"></i> View Coach Profile
-                                </a>
-                                <a asp-action="Index" asp-route-coachId="@Model.CoachId" class="btn btn-outline-info btn-sm">
-                                    <i class="fas fa-comments"></i> View All Messages from Coach
-                                </a>
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary">
+                                        <i class="fas fa-plus"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Message Created</h6>
+                                        <p class="timeline-text">
+                                            <strong>@Model.CreatedAt.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</strong>
+                                            @{
+                                                var timeAgo = DateTime.Now - Model.CreatedAt.Value;
+                                                string timeAgoText = "";
+                                                if (timeAgo.TotalMinutes < 60)
+                                                {
+                                                    timeAgoText = $"{(int)timeAgo.TotalDays} days ago";
+                                                }
+                                            }
+                                            <br /><small class="text-muted">@timeAgoText</small>
+                                        </p>
+                                    </div>
+                                </div>
                             }
-                            <a asp-controller="CoachesLocDpx" asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                                <i class="fas fa-users"></i> All Coaches
-                            </a>
+
+                            @if (Model.ResponseTime.HasValue)
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-success">
+                                        <i class="fas fa-reply"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Response Received</h6>
+                                        <p class="timeline-text">
+                                            <strong>@Model.ResponseTime.Value.ToString("MMM dd, yyyy 'at' h:mm tt")</strong>
+                                            @if (Model.CreatedAt.HasValue && Model.ResponseTime.HasValue)
+                                            {
+                                                var responseDelay = Model.ResponseTime.Value - Model.CreatedAt.Value;
+                                                <br />
+                                                <small class="@(responseDelay.TotalMinutes < 60 ? "text-success" : responseDelay.TotalHours < 24 ? "text-warning" : "text-danger")">
+                                                    Response time:
+                                                    @if (responseDelay.TotalMinutes < 60)
+                                                    {
+                                                        <span>@((int)responseDelay.TotalMinutes) minutes (Quick response!)</span>
+                                                    }
+                                                    else if (responseDelay.TotalHours < 24)
+                                                    {
+                                                        <span>@((int)responseDelay.TotalHours) hours (Same day)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@((int)responseDelay.TotalDays) days (Delayed)</span>
+                                                    }
+                                                </small>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-warning">
+                                        <i class="fas fa-hourglass-half"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Awaiting Response</h6>
+                                        <p class="timeline-text text-muted">
+                                            No response recorded yet
+                                        </p>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <div class="col-md-4">
+        <!-- Action Buttons -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-tools"></i> Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.ChatsLocDpxid" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit Message
+                    </a>
+
+                    @if (User.IsInRole("1")) // Only admin can delete
+                    {
+                        <a asp-action="Delete" asp-route-id="@Model.ChatsLocDpxid" class="btn btn-danger">
+                            <i class="fas fa-trash-alt"></i> Delete Message
+                        </a>
+                    }
+
+                    <hr class="my-2" />
+
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Messages
+                    </a>
+
+                    <a asp-action="Create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> New Message
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Actions -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Related Actions</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="text-primary">Message Management</h6>
+                <div class="d-grid gap-1 mb-3">
+                    @if (Model.User != null)
+                    {
+                        <a asp-action="Index" asp-route-userId="@Model.UserId" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-user"></i> All Messages from @Model.User.UserName
+                        </a>
+                    }
+
+                    @if (Model.Coach != null)
+                    {
+                        <a asp-action="Index" asp-route-coachId="@Model.CoachId" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-user-tie"></i> All Messages from @Model.Coach.FullName
+                        </a>
+                    }
+                </div>
+
+                <h6 class="text-success">Coach Management</h6>
+                <div class="d-grid gap-1">
+                    @if (Model.Coach != null)
+                    {
+                        <a asp-controller="CoachesLocDpx" asp-action="Details" asp-route-id="@Model.CoachId" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-user-tie"></i> View Coach Profile
+                        </a>
+                    }
+
+                    <a asp-controller="CoachesLocDpx" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-users"></i> All Coaches
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Statistics -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Message Info</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h4 class="text-primary mb-0">@(Model.Message?.Length ?? 0)</h4>
+                            <small class="text-muted">Characters</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-info mb-0">@(Model.Message?.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length ?? 0)</h4>
+                        <small class="text-muted">Words</small>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="small">
+                    <div class="d-flex justify-content-between">
+                        <span>Message Type:</span>
+                        <span class="text-capitalize">@Model.MessageType</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Has Attachment:</span>
+                        <span>@(string.IsNullOrEmpty(Model.AttachmentUrl) ? "No" : "Yes")</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Read Status:</span>
+                        <span class="@(Model.IsRead ? "text-success" : "text-warning")">
+                            @(Model.IsRead ? "Read" : "Unread")
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 30px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -22px;
+        top: 0;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+        border: 3px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .timeline-title {
+        margin-bottom: 5px;
+        color: #495057;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .timeline-text {
+        margin: 0;
+        font-size: 13px;
+        color: #6c757d;
+    }
+</style>
 
 @section Scripts {
     <script>
         $(document).ready(function() {
-            // Add tooltips to badges and icons
+            // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
 
             // Auto-refresh unread status every 30 seconds (optional)
@@ -252,6 +445,27 @@
                     }, 30000);
                     </text>
             }
+
+            // Copy message ID to clipboard
+            $('.badge').click(function() {
+                const text = $(this).text();
+                navigator.clipboard.writeText(text).then(function() {
+                    // Show tooltip or notification
+                    alert('Message ID copied to clipboard!');
+                });
+            });
+
+            // Highlight external links
+            $('a[href^="http"]').addClass('text-decoration-none').append(' <i class="fas fa-external-link-alt fa-xs"></i>');
         });
     </script>
 }
+go.TotalMinutes} minutes ago";
+                                                }
+                                                else if (timeAgo.TotalHours < 24)
+                                                {
+                                                    timeAgoText = $"{(int)timeAgo.TotalHours} hours ago";
+                                                }
+                                                else
+                                                {
+                                                    timeAgoText = $"{(int)timeA

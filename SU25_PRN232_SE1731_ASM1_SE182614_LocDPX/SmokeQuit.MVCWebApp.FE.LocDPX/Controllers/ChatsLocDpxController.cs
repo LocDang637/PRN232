@@ -25,30 +25,51 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
                 PageSize = 10
             };
 
-            using (var httpClient = new HttpClient())
+            try
             {
-                var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
-
-                using (var response = await httpClient.PostAsJsonAsync(APIEndPoint + "ChatsLocDpx/Search", search))
+                using (var httpClient = new HttpClient())
                 {
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var result = JsonConvert.DeserializeObject<PaginationResult<List<ChatsLocDpx>>>(content);
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
 
-                        if (result != null)
+                    if (string.IsNullOrEmpty(tokenString))
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                    using (var response = await httpClient.PostAsJsonAsync(APIEndPoint + "ChatsLocDpx/Search", search))
+                    {
+                        if (response.IsSuccessStatusCode)
                         {
-                            var pagedList = new StaticPagedList<ChatsLocDpx>(
-                                result.Items,
-                                result.CurrentPage,
-                                result.PageSize,
-                                result.TotalItems
-                            );
-                            return View(pagedList);
+                            var content = await response.Content.ReadAsStringAsync();
+                            var result = JsonConvert.DeserializeObject<PaginationResult<List<ChatsLocDpx>>>(content);
+
+                            if (result != null)
+                            {
+                                var pagedList = new StaticPagedList<ChatsLocDpx>(
+                                    result.Items,
+                                    result.CurrentPage,
+                                    result.PageSize,
+                                    result.TotalItems
+                                );
+                                return View(pagedList);
+                            }
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        {
+                            return RedirectToAction("Login", "Account");
+                        }
+                        else
+                        {
+                            TempData["Error"] = "Failed to load chat messages. Please try again.";
                         }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An error occurred: {ex.Message}";
             }
 
             return View(new List<ChatsLocDpx>().ToPagedList(search.CurrentPage, search.PageSize));
@@ -57,9 +78,17 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
         // GET: ChatsLocDpx/Create
         public async Task<IActionResult> Create()
         {
-            ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName");
-            ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName");
-            return View();
+            try
+            {
+                ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName");
+                ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName");
+                return View();
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error loading create form: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // POST: ChatsLocDpx/Create
@@ -69,35 +98,68 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
         {
             if (ModelState.IsValid)
             {
-                using (var httpClient = new HttpClient())
+                try
                 {
-                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
-                    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
-
-                    var chatDto = new
+                    using (var httpClient = new HttpClient())
                     {
-                        Message = chat.Message,
-                        MessageType = chat.MessageType,
-                        UserId = chat.UserId,
-                        CoachId = chat.CoachId,
-                        SentBy = chat.SentBy,
-                        AttachmentUrl = chat.AttachmentUrl,
-                        IsRead = chat.IsRead,
-                        ResponseTime = chat.ResponseTime
-                    };
+                        var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
 
-                    using (var response = await httpClient.PostAsJsonAsync(APIEndPoint + "ChatsLocDpx", chatDto))
-                    {
-                        if (response.IsSuccessStatusCode)
+                        if (string.IsNullOrEmpty(tokenString))
                         {
-                            return RedirectToAction(nameof(Index));
+                            return RedirectToAction("Login", "Account");
+                        }
+
+                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                        var chatDto = new
+                        {
+                            Message = chat.Message?.Trim(),
+                            MessageType = chat.MessageType ?? "text",
+                            UserId = chat.UserId,
+                            CoachId = chat.CoachId,
+                            SentBy = chat.SentBy ?? "user",
+                            AttachmentUrl = chat.AttachmentUrl,
+                            IsRead = chat.IsRead,
+                            ResponseTime = chat.ResponseTime
+                        };
+
+                        using (var response = await httpClient.PostAsJsonAsync(APIEndPoint + "ChatsLocDpx", chatDto))
+                        {
+                            if (response.IsSuccessStatusCode)
+                            {
+                                TempData["Success"] = "Chat message created successfully!";
+                                return RedirectToAction(nameof(Index));
+                            }
+                            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                            {
+                                return RedirectToAction("Login", "Account");
+                            }
+                            else
+                            {
+                                var errorContent = await response.Content.ReadAsStringAsync();
+                                TempData["Error"] = $"Failed to create message: {errorContent}";
+                            }
                         }
                     }
                 }
+                catch (Exception ex)
+                {
+                    TempData["Error"] = $"An error occurred: {ex.Message}";
+                }
             }
 
-            ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName", chat.CoachId);
-            ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName", chat.UserId);
+            // Reload dropdowns on error
+            try
+            {
+                ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName", chat.CoachId);
+                ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName", chat.UserId);
+            }
+            catch
+            {
+                // If we can't load dropdowns, redirect to index
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(chat);
         }
 
@@ -108,64 +170,336 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
 
             ChatsLocDpx chat = null;
 
-            using (var httpClient = new HttpClient())
+            try
             {
-                var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
-
-                var response = await httpClient.GetAsync(APIEndPoint + "ChatsLocDpx/" + id);
-                if (response.IsSuccessStatusCode)
+                using (var httpClient = new HttpClient())
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    chat = JsonConvert.DeserializeObject<ChatsLocDpx>(content);
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                    if (string.IsNullOrEmpty(tokenString))
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                    var response = await httpClient.GetAsync(APIEndPoint + "ChatsLocDpx/" + id);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        chat = JsonConvert.DeserializeObject<ChatsLocDpx>(content);
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return NotFound();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error loading chat: {ex.Message}";
+                return RedirectToAction(nameof(Index));
             }
 
             if (chat == null) return NotFound();
 
-            ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName", chat.CoachId);
-            ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName", chat.UserId);
+            try
+            {
+                ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName", chat.CoachId);
+                ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName", chat.UserId);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error loading form data: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
+
             return View(chat);
         }
 
-        // Additional methods for Edit, Delete, etc.
-        private async Task<List<CoachesLocDpx>> GetCoaches()
+        // POST: ChatsLocDpx/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, ChatsLocDpx chat)
         {
-            using (var httpClient = new HttpClient())
+            if (id != chat.ChatsLocDpxid)
             {
-                var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+                return BadRequest();
+            }
 
-                using (var response = await httpClient.GetAsync(APIEndPoint + "CoachLocDpx"))
+            if (ModelState.IsValid)
+            {
+                try
                 {
+                    using (var httpClient = new HttpClient())
+                    {
+                        var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                        if (string.IsNullOrEmpty(tokenString))
+                        {
+                            return RedirectToAction("Login", "Account");
+                        }
+
+                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                        var chatDto = new
+                        {
+                            Message = chat.Message?.Trim(),
+                            MessageType = chat.MessageType,
+                            SentBy = chat.SentBy,
+                            AttachmentUrl = chat.AttachmentUrl,
+                            IsRead = chat.IsRead,
+                            ResponseTime = chat.ResponseTime
+                        };
+
+                        using (var response = await httpClient.PutAsJsonAsync(APIEndPoint + "ChatsLocDpx/" + id, chatDto))
+                        {
+                            if (response.IsSuccessStatusCode)
+                            {
+                                TempData["Success"] = "Chat message updated successfully!";
+                                return RedirectToAction(nameof(Index));
+                            }
+                            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                            {
+                                return RedirectToAction("Login", "Account");
+                            }
+                            else
+                            {
+                                var errorContent = await response.Content.ReadAsStringAsync();
+                                TempData["Error"] = $"Failed to update message: {errorContent}";
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    TempData["Error"] = $"An error occurred: {ex.Message}";
+                }
+            }
+
+            // Reload dropdowns on error
+            try
+            {
+                ViewData["CoachId"] = new SelectList(await GetCoaches(), "CoachesLocDpxid", "FullName", chat.CoachId);
+                ViewData["UserId"] = new SelectList(await GetUsers(), "UserAccountId", "UserName", chat.UserId);
+            }
+            catch
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View(chat);
+        }
+
+        // GET: ChatsLocDpx/Details/5
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            ChatsLocDpx chat = null;
+
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                    if (string.IsNullOrEmpty(tokenString))
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                    var response = await httpClient.GetAsync(APIEndPoint + "ChatsLocDpx/" + id);
                     if (response.IsSuccessStatusCode)
                     {
                         var content = await response.Content.ReadAsStringAsync();
-                        var result = JsonConvert.DeserializeObject<List<CoachesLocDpx>>(content);
-                        return result ?? new List<CoachesLocDpx>();
+                        chat = JsonConvert.DeserializeObject<ChatsLocDpx>(content);
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return NotFound();
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error loading chat details: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (chat == null) return NotFound();
+            return View(chat);
+        }
+
+        // GET: ChatsLocDpx/Delete/5
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null) return NotFound();
+
+            ChatsLocDpx chat = null;
+
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                    if (string.IsNullOrEmpty(tokenString))
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                    var response = await httpClient.GetAsync(APIEndPoint + "ChatsLocDpx/" + id);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var content = await response.Content.ReadAsStringAsync();
+                        chat = JsonConvert.DeserializeObject<ChatsLocDpx>(content);
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+                    else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return NotFound();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"Error loading chat for deletion: {ex.Message}";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (chat == null) return NotFound();
+            return View(chat);
+        }
+
+        // POST: ChatsLocDpx/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                    if (string.IsNullOrEmpty(tokenString))
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+
+                    httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+
+                    using (var response = await httpClient.DeleteAsync(APIEndPoint + "ChatsLocDpx/" + id))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            TempData["Success"] = "Chat message deleted successfully!";
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        {
+                            return RedirectToAction("Login", "Account");
+                        }
+                        else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                        {
+                            TempData["Error"] = "You don't have permission to delete this message.";
+                        }
+                        else
+                        {
+                            var errorContent = await response.Content.ReadAsStringAsync();
+                            TempData["Error"] = $"Failed to delete message: {errorContent}";
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = $"An error occurred: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // Helper method to get coaches
+        private async Task<List<CoachesLocDpx>> GetCoaches()
+        {
+            try
+            {
+                using (var httpClient = new HttpClient())
+                {
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                    if (!string.IsNullOrEmpty(tokenString))
+                    {
+                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+                    }
+
+                    using (var response = await httpClient.GetAsync(APIEndPoint + "CoachLocDpx"))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var content = await response.Content.ReadAsStringAsync();
+                            var result = JsonConvert.DeserializeObject<List<CoachesLocDpx>>(content);
+                            return result ?? new List<CoachesLocDpx>();
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log the exception if needed
+                Console.WriteLine($"Error getting coaches: {ex.Message}");
+            }
+
             return new List<CoachesLocDpx>();
         }
 
+        // Helper method to get users
         private async Task<List<SystemUserAccount>> GetUsers()
         {
-            using (var httpClient = new HttpClient())
+            try
             {
-                var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
-                httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
-
-                using (var response = await httpClient.GetAsync(APIEndPoint + "SystemUserAccount"))
+                using (var httpClient = new HttpClient())
                 {
-                    if (response.IsSuccessStatusCode)
+                    var tokenString = HttpContext.Request.Cookies.FirstOrDefault(c => c.Key == "TokenString").Value;
+
+                    if (!string.IsNullOrEmpty(tokenString))
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var result = JsonConvert.DeserializeObject<List<SystemUserAccount>>(content);
-                        return result ?? new List<SystemUserAccount>();
+                        httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
+                    }
+
+                    using (var response = await httpClient.GetAsync(APIEndPoint + "SystemUserAccount"))
+                    {
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var content = await response.Content.ReadAsStringAsync();
+                            var result = JsonConvert.DeserializeObject<List<SystemUserAccount>>(content);
+                            return result ?? new List<SystemUserAccount>();
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                // Log the exception if needed
+                Console.WriteLine($"Error getting users: {ex.Message}");
+            }
+
             return new List<SystemUserAccount>();
         }
     }
