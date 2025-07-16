@@ -45,11 +45,26 @@ namespace SmokeQuit.Services.LocDPX
             }
         }
 
+        // Added method for updates with tracking
+        public async Task<ChatsLocDpx> GetByIdForUpdateAsync(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                    throw new ArgumentException("Chat ID must be greater than 0", nameof(id));
+
+                return await _repository.GetByIdForUpdateAsync(id);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error retrieving chat for update with ID {id}: {ex.Message}", ex);
+            }
+        }
+
         public async Task<List<ChatsLocDpx>> SearchAsync(string message, string messageType, string sentBy, DateTime? startDate, DateTime? endDate)
         {
             try
             {
-                // Validate date range
                 if (startDate.HasValue && endDate.HasValue && startDate > endDate)
                     throw new ArgumentException("Start date cannot be later than end date");
 
@@ -65,14 +80,12 @@ namespace SmokeQuit.Services.LocDPX
         {
             try
             {
-                // Validate pagination parameters
                 if (currentPage <= 0)
                     throw new ArgumentException("Current page must be greater than 0", nameof(currentPage));
 
                 if (pageSize <= 0 || pageSize > 100)
                     throw new ArgumentException("Page size must be between 1 and 100", nameof(pageSize));
 
-                // Validate date range
                 if (startDate.HasValue && endDate.HasValue && startDate > endDate)
                     throw new ArgumentException("Start date cannot be later than end date");
 
@@ -88,7 +101,6 @@ namespace SmokeQuit.Services.LocDPX
         {
             try
             {
-                // Validate pagination parameters
                 if (currentPage <= 0)
                     throw new ArgumentException("Current page must be greater than 0", nameof(currentPage));
 
@@ -137,7 +149,6 @@ namespace SmokeQuit.Services.LocDPX
         {
             try
             {
-                // Validate input
                 if (input == null)
                     throw new ArgumentNullException(nameof(input), "Chat input cannot be null");
 
@@ -156,20 +167,15 @@ namespace SmokeQuit.Services.LocDPX
                 if (string.IsNullOrWhiteSpace(input.MessageType))
                     throw new ArgumentException("MessageType is required", nameof(input.MessageType));
 
-                // Set creation timestamp
                 input.CreatedAt = DateTime.UtcNow;
-
-                // Trim and sanitize text fields
                 input.Message = input.Message.Trim();
                 input.MessageType = input.MessageType.Trim().ToLower();
                 input.SentBy = input.SentBy.Trim().ToLower();
 
-                // Validate message type
                 var validTypes = new[] { "text", "image", "file" };
                 if (!validTypes.Contains(input.MessageType))
                     throw new ArgumentException("Invalid message type. Must be: text, image, or file", nameof(input.MessageType));
 
-                // Validate sent by
                 var validSenders = new[] { "user", "coach" };
                 if (!validSenders.Contains(input.SentBy))
                     throw new ArgumentException("Invalid sender. Must be: user or coach", nameof(input.SentBy));
@@ -186,19 +192,12 @@ namespace SmokeQuit.Services.LocDPX
         {
             try
             {
-                // Validate input
                 if (input == null)
                     throw new ArgumentNullException(nameof(input), "Chat input cannot be null");
 
                 if (input.ChatsLocDpxid <= 0)
                     throw new ArgumentException("Invalid Chat ID", nameof(input.ChatsLocDpxid));
 
-                // Check if chat exists
-                var existingChat = await _repository.GetByIdAsync(input.ChatsLocDpxid);
-                if (existingChat == null)
-                    throw new InvalidOperationException($"Chat with ID {input.ChatsLocDpxid} not found");
-
-                // Validate updatable fields
                 if (string.IsNullOrWhiteSpace(input.Message))
                     throw new ArgumentException("Message is required", nameof(input.Message));
 
@@ -208,17 +207,14 @@ namespace SmokeQuit.Services.LocDPX
                 if (string.IsNullOrWhiteSpace(input.SentBy))
                     throw new ArgumentException("SentBy is required", nameof(input.SentBy));
 
-                // Trim and sanitize text fields
                 input.Message = input.Message.Trim();
                 input.MessageType = input.MessageType.Trim().ToLower();
                 input.SentBy = input.SentBy.Trim().ToLower();
 
-                // Validate message type
                 var validTypes = new[] { "text", "image", "file" };
                 if (!validTypes.Contains(input.MessageType))
                     throw new ArgumentException("Invalid message type. Must be: text, image, or file", nameof(input.MessageType));
 
-                // Validate sent by
                 var validSenders = new[] { "user", "coach" };
                 if (!validSenders.Contains(input.SentBy))
                     throw new ArgumentException("Invalid sender. Must be: user or coach", nameof(input.SentBy));
@@ -240,7 +236,7 @@ namespace SmokeQuit.Services.LocDPX
 
                 var chat = await _repository.GetByIdAsync(id);
                 if (chat == null)
-                    return false; // Chat not found
+                    return false;
 
                 return await _repository.RemoveAsync(chat);
             }

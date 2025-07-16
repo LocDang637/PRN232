@@ -194,6 +194,14 @@
                                                 string timeAgoText = "";
                                                 if (timeAgo.TotalMinutes < 60)
                                                 {
+                                                    timeAgoText = $"{(int)timeAgo.TotalMinutes} minutes ago";
+                                                }
+                                                else if (timeAgo.TotalHours < 24)
+                                                {
+                                                    timeAgoText = $"{(int)timeAgo.TotalHours} hours ago";
+                                                }
+                                                else
+                                                {
                                                     timeAgoText = $"{(int)timeAgo.TotalDays} days ago";
                                                 }
                                             }
@@ -290,7 +298,7 @@
             </div>
         </div>
 
-        <!-- Related Actions -->
+        <!-- Related Actions - FIXED -->
         <div class="card mb-3">
             <div class="card-header">
                 <h5 class="mb-0"><i class="fas fa-link"></i> Related Actions</h5>
@@ -300,14 +308,14 @@
                 <div class="d-grid gap-1 mb-3">
                     @if (Model.User != null)
                     {
-                        <a asp-action="Index" asp-route-userId="@Model.UserId" class="btn btn-outline-primary btn-sm">
+                        <a href="@Url.Action("Index", "ChatsLocDpx", new { userId = Model.UserId })" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-user"></i> All Messages from @Model.User.UserName
                         </a>
                     }
 
                     @if (Model.Coach != null)
                     {
-                        <a asp-action="Index" asp-route-coachId="@Model.CoachId" class="btn btn-outline-success btn-sm">
+                        <a href="@Url.Action("Index", "ChatsLocDpx", new { coachId = Model.CoachId })" class="btn btn-outline-success btn-sm">
                             <i class="fas fa-user-tie"></i> All Messages from @Model.Coach.FullName
                         </a>
                     }
@@ -460,12 +468,3 @@
         });
     </script>
 }
-go.TotalMinutes} minutes ago";
-                                                }
-                                                else if (timeAgo.TotalHours < 24)
-                                                {
-                                                    timeAgoText = $"{(int)timeAgo.TotalHours} hours ago";
-                                                }
-                                                else
-                                                {
-                                                    timeAgoText = $"{(int)timeA

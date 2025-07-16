@@ -14,7 +14,7 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
     {
         private string APIEndPoint = "https://localhost:7260/api/";
 
-        public async Task<IActionResult> Index(string? message, string? messageType, string? sentBy, int? pageNumber)
+        public async Task<IActionResult> Index(string? message, string? messageType, string? sentBy, int? userId, int? coachId, int? pageNumber)
         {
             var search = new SearchChatRequest
             {
@@ -38,31 +38,64 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
 
                     httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
 
-                    using (var response = await httpClient.PostAsJsonAsync(APIEndPoint + "ChatsLocDpx/Search", search))
+                    // Use different endpoint based on filters
+                    string endpoint;
+                    if (userId.HasValue)
                     {
-                        if (response.IsSuccessStatusCode)
+                        endpoint = $"{APIEndPoint}ChatsLocDpx/user/{userId.Value}";
+                        var userResponse = await httpClient.GetAsync(endpoint);
+                        if (userResponse.IsSuccessStatusCode)
                         {
-                            var content = await response.Content.ReadAsStringAsync();
-                            var result = JsonConvert.DeserializeObject<PaginationResult<List<ChatsLocDpx>>>(content);
-
-                            if (result != null)
+                            var userContent = await userResponse.Content.ReadAsStringAsync();
+                            var userChats = JsonConvert.DeserializeObject<List<ChatsLocDpx>>(userContent);
+                            var userPagedList = userChats.ToPagedList(search.CurrentPage, search.PageSize);
+                            ViewData["FilterInfo"] = $"Messages from User ID: {userId}";
+                            return View(userPagedList);
+                        }
+                    }
+                    else if (coachId.HasValue)
+                    {
+                        endpoint = $"{APIEndPoint}ChatsLocDpx/coach/{coachId.Value}";
+                        var coachResponse = await httpClient.GetAsync(endpoint);
+                        if (coachResponse.IsSuccessStatusCode)
+                        {
+                            var coachContent = await coachResponse.Content.ReadAsStringAsync();
+                            var coachChats = JsonConvert.DeserializeObject<List<ChatsLocDpx>>(coachContent);
+                            var coachPagedList = coachChats.ToPagedList(search.CurrentPage, search.PageSize);
+                            ViewData["FilterInfo"] = $"Messages from Coach ID: {coachId}";
+                            return View(coachPagedList);
+                        }
+                    }
+                    else
+                    {
+                        // Use search endpoint for general filtering
+                        endpoint = $"{APIEndPoint}ChatsLocDpx/Search";
+                        using (var response = await httpClient.PostAsJsonAsync(endpoint, search))
+                        {
+                            if (response.IsSuccessStatusCode)
                             {
-                                var pagedList = new StaticPagedList<ChatsLocDpx>(
-                                    result.Items,
-                                    result.CurrentPage,
-                                    result.PageSize,
-                                    result.TotalItems
-                                );
-                                return View(pagedList);
+                                var content = await response.Content.ReadAsStringAsync();
+                                var result = JsonConvert.DeserializeObject<PaginationResult<List<ChatsLocDpx>>>(content);
+
+                                if (result != null)
+                                {
+                                    var pagedList = new StaticPagedList<ChatsLocDpx>(
+                                        result.Items,
+                                        result.CurrentPage,
+                                        result.PageSize,
+                                        result.TotalItems
+                                    );
+                                    return View(pagedList);
+                                }
                             }
-                        }
-                        else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                        {
-                            return RedirectToAction("Login", "Account");
-                        }
-                        else
-                        {
-                            TempData["Error"] = "Failed to load chat messages. Please try again.";
+                            else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                            {
+                                return RedirectToAction("Login", "Account");
+                            }
+                            else
+                            {
+                                TempData["Error"] = "Failed to load chat messages. Please try again.";
+                            }
                         }
                     }
                 }
@@ -156,7 +189,6 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
             }
             catch
             {
-                // If we can't load dropdowns, redirect to index
                 return RedirectToAction(nameof(Index));
             }
 
@@ -221,7 +253,7 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
             return View(chat);
         }
 
-        // POST: ChatsLocDpx/Edit/5
+        // POST: ChatsLocDpx/Edit/5 - COMPLETELY FIXED VERSION
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ChatsLocDpx chat)
@@ -230,6 +262,11 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
             {
                 return BadRequest();
             }
+
+            // Clear model state for non-editable fields to avoid validation errors
+            ModelState.Remove("UserId");
+            ModelState.Remove("CoachId");
+            ModelState.Remove("CreatedAt");
 
             if (ModelState.IsValid)
             {
@@ -246,7 +283,8 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
 
                         httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer " + tokenString);
 
-                        var chatDto = new
+                        // FIXED: Only send the editable fields - DO NOT send UserId, CoachId, CreatedAt
+                        var updateDto = new
                         {
                             Message = chat.Message?.Trim(),
                             MessageType = chat.MessageType,
@@ -254,9 +292,10 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
                             AttachmentUrl = chat.AttachmentUrl,
                             IsRead = chat.IsRead,
                             ResponseTime = chat.ResponseTime
+                            // IMPORTANT: NOT sending UserId, CoachId, or CreatedAt
                         };
 
-                        using (var response = await httpClient.PutAsJsonAsync(APIEndPoint + "ChatsLocDpx/" + id, chatDto))
+                        using (var response = await httpClient.PutAsJsonAsync(APIEndPoint + "ChatsLocDpx/" + id, updateDto))
                         {
                             if (response.IsSuccessStatusCode)
                             {
@@ -279,6 +318,12 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
                 {
                     TempData["Error"] = $"An error occurred: {ex.Message}";
                 }
+            }
+            else
+            {
+                // Log validation errors for debugging
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                TempData["Error"] = $"Validation errors: {string.Join(", ", errors)}";
             }
 
             // Reload dropdowns on error
@@ -462,7 +507,6 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception if needed
                 Console.WriteLine($"Error getting coaches: {ex.Message}");
             }
 
@@ -496,7 +540,6 @@ namespace SmokeQuit.MVCWebApp.FE.LocDPX.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception if needed
                 Console.WriteLine($"Error getting users: {ex.Message}");
             }
 

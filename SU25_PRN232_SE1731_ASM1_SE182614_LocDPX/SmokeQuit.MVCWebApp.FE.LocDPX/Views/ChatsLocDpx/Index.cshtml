@@ -7,6 +7,9 @@
     var currentMessage = Context.Request.Query["message"].ToString();
     var currentMessageType = Context.Request.Query["messageType"].ToString();
     var currentSentBy = Context.Request.Query["sentBy"].ToString();
+    var currentUserId = Context.Request.Query["userId"].ToString();
+    var currentCoachId = Context.Request.Query["coachId"].ToString();
+    var filterInfo = ViewData["FilterInfo"]?.ToString();
 }
 
 <!-- Display success/error messages -->
@@ -27,19 +30,68 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-comments text-primary"></i> Chat Messages</h1>
-    <a asp-action="Create" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Create New Message
-    </a>
+    <div>
+        <h1><i class="fas fa-comments text-primary"></i> Chat Messages</h1>
+        @if (!string.IsNullOrEmpty(filterInfo))
+        {
+            <small class="text-muted"><i class="fas fa-filter"></i> @filterInfo</small>
+        }
+    </div>
+    <div>
+        <!-- Quick Stats -->
+        <div class="btn-group me-2" role="group">
+            <button type="button" class="btn btn-outline-info btn-sm" id="statsBtn">
+                <i class="fas fa-chart-bar"></i> Stats
+            </button>
+            <button type="button" class="btn btn-outline-warning btn-sm" id="unreadBtn">
+                <i class="fas fa-envelope"></i> Unread: <span id="unreadCount">-</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Create New Message
+        </a>
+    </div>
 </div>
 
-<!-- Search Form -->
+<!-- Stats Modal -->
+<div class="modal fade" id="statsModal" tabindex="-1" aria-labelledby="statsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statsModalLabel">
+                    <i class="fas fa-chart-bar text-info"></i> Chat Statistics
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="statsContent">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p>Loading statistics...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Search Form -->
 <div class="card mb-4">
     <div class="card-header">
-        <h5 class="mb-0"><i class="fas fa-search"></i> Search Messages</h5>
+        <h5 class="mb-0">
+            <i class="fas fa-search"></i> Search Messages
+            <button class="btn btn-sm btn-outline-secondary float-end" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearch">
+                <i class="fas fa-cog"></i> Advanced
+            </button>
+        </h5>
     </div>
     <div class="card-body">
-        <form asp-action="Index" method="get" class="row g-3">
+        <form asp-action="Index" method="get" class="row g-3" id="searchForm">
             <div class="col-md-3">
                 <label for="message" class="form-label">Message Content</label>
                 <input type="text" id="message" name="message" class="form-control" 
@@ -49,17 +101,17 @@
                 <label for="messageType" class="form-label">Message Type</label>
                 <select id="messageType" name="messageType" class="form-select">
                     <option value="">All Types</option>
-                    <option value="text" selected="@(currentMessageType == "text" ? "selected" : null)">Text</option>
-                    <option value="image" selected="@(currentMessageType == "image" ? "selected" : null)">Image</option>
-                    <option value="file" selected="@(currentMessageType == "file" ? "selected" : null)">File</option>
+                    <option value="text" selected="@(currentMessageType == "text" ? "selected" : null)">📝 Text</option>
+                    <option value="image" selected="@(currentMessageType == "image" ? "selected" : null)">🖼️ Image</option>
+                    <option value="file" selected="@(currentMessageType == "file" ? "selected" : null)">📎 File</option>
                 </select>
             </div>
             <div class="col-md-2">
                 <label for="sentBy" class="form-label">Sent By</label>
                 <select id="sentBy" name="sentBy" class="form-select">
                     <option value="">All</option>
-                    <option value="user" selected="@(currentSentBy == "user" ? "selected" : null)">User</option>
-                    <option value="coach" selected="@(currentSentBy == "coach" ? "selected" : null)">Coach</option>
+                    <option value="user" selected="@(currentSentBy == "user" ? "selected" : null)">👤 User</option>
+                    <option value="coach" selected="@(currentSentBy == "coach" ? "selected" : null)">👨‍💼 Coach</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -73,9 +125,69 @@
                     </a>
                 </div>
             </div>
+            <div class="col-md-2">
+                <label class="form-label">Quick Actions</label>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-outline-warning btn-sm" id="showUnreadBtn">
+                        <i class="fas fa-envelope"></i> Unread
+                    </button>
+                </div>
+            </div>
+
+            <!-- Advanced Search Collapse -->
+            <div class="collapse" id="advancedSearch">
+                <div class="row g-3 mt-2 pt-3 border-top">
+                    <div class="col-md-3">
+                        <label for="userId" class="form-label">Specific User ID</label>
+                        <input type="number" id="userId" name="userId" class="form-control" 
+                               placeholder="Enter user ID..." value="@currentUserId" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="coachId" class="form-label">Specific Coach ID</label>
+                        <input type="number" id="coachId" name="coachId" class="form-control" 
+                               placeholder="Enter coach ID..." value="@currentCoachId" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dateFrom" class="form-label">Date From</label>
+                        <input type="date" id="dateFrom" name="dateFrom" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="dateTo" class="form-label">Date To</label>
+                        <input type="date" id="dateTo" name="dateTo" class="form-control" />
+                    </div>
+                </div>
+            </div>
         </form>
     </div>
 </div>
+
+<!-- Bulk Actions -->
+@if (Model != null && Model.Any())
+{
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center">
+                <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" id="selectAll">
+                    <label class="form-check-label" for="selectAll">
+                        Select All
+                    </label>
+                </div>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="bulkMarkReadBtn" disabled>
+                        <i class="fas fa-check"></i> Mark as Read
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" id="bulkMarkUnreadBtn" disabled>
+                        <i class="fas fa-envelope"></i> Mark as Unread
+                    </button>
+                </div>
+                <small class="text-muted ms-3">
+                    <span id="selectedCount">0</span> selected
+                </small>
+            </div>
+        </div>
+    </div>
+}
 
 <!-- Messages Table -->
 <div class="card">
@@ -86,6 +198,9 @@
                 <table class="table table-striped table-hover">
                     <thead class="table-dark">
                         <tr>
+                            <th width="40px">
+                                <i class="fas fa-check"></i>
+                            </th>
                             <th><i class="fas fa-comment"></i> Message</th>
                             <th><i class="fas fa-tag"></i> Type</th>
                             <th><i class="fas fa-user"></i> Sent By</th>
@@ -99,12 +214,20 @@
                     <tbody>
                         @foreach (var item in Model)
                         {
-                            <tr>
+                            <tr data-chat-id="@item.ChatsLocDpxid">
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input chat-checkbox" type="checkbox" 
+                                               value="@item.ChatsLocDpxid" data-read="@item.IsRead.ToString().ToLower()">
+                                    </div>
+                                </td>
                                 <td>
                                     <div class="message-preview">
                                         @if (item.Message?.Length > 50)
                                         {
-                                            <span title="@item.Message">@item.Message.Substring(0, 50)...</span>
+                                            <span title="@item.Message" data-bs-toggle="tooltip">
+                                                @item.Message.Substring(0, 50)...
+                                            </span>
                                         }
                                         else
                                         {
@@ -112,7 +235,11 @@
                                         }
                                         @if (!string.IsNullOrEmpty(item.AttachmentUrl))
                                         {
-                                            <i class="fas fa-paperclip text-info ms-1" title="Has attachment"></i>
+                                            <i class="fas fa-paperclip text-info ms-1" title="Has attachment" data-bs-toggle="tooltip"></i>
+                                        }
+                                        @if (!item.IsRead)
+                                        {
+                                            <span class="badge bg-warning ms-1">NEW</span>
                                         }
                                     </div>
                                 </td>
@@ -131,7 +258,7 @@
                                 <td>
                                     @if (item.User != null)
                                     {
-                                        <span title="@item.User.FullName">
+                                        <span title="@item.User.FullName" data-bs-toggle="tooltip">
                                             <i class="fas fa-user text-primary"></i> @item.User.UserName
                                         </span>
                                     }
@@ -143,7 +270,7 @@
                                 <td>
                                     @if (item.Coach != null)
                                     {
-                                        <span title="@item.Coach.Email">
+                                        <span title="@item.Coach.Email" data-bs-toggle="tooltip">
                                             <i class="fas fa-user-tie text-success"></i> @item.Coach.FullName
                                         </span>
                                     }
@@ -153,27 +280,68 @@
                                     }
                                 </td>
                                 <td>
-                                    @if (item.IsRead)
-                                    {
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle"></i> Read
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning">
-                                            <i class="fas fa-envelope"></i> Unread
-                                        </span>
-                                    }
+                                    <div class="d-flex align-items-center">
+                                        @if (item.IsRead)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check-circle"></i> Read
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-envelope"></i> Unread
+                                            </span>
+                                        }
+                                        <!-- Quick action buttons -->
+                                        <div class="btn-group ms-2" role="group">
+                                            @if (!item.IsRead)
+                                            {
+                                                <button type="button" class="btn btn-xs btn-outline-success mark-read-btn" 
+                                                        data-chat-id="@item.ChatsLocDpxid" title="Mark as read">
+                                                    <i class="fas fa-check"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="btn btn-xs btn-outline-warning mark-unread-btn" 
+                                                        data-chat-id="@item.ChatsLocDpxid" title="Mark as unread">
+                                                    <i class="fas fa-envelope"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </div>
                                 </td>
                                 <td>
                                     @if (item.CreatedAt.HasValue)
                                     {
-                                        <small>
-                                            @item.CreatedAt.Value.ToString("MM/dd/yyyy")
-                                            <br />
-                                            <span class="text-muted">@item.CreatedAt.Value.ToString("HH:mm")</span>
-                                        </small>
+                                        <div class="small">
+                                            <div>@item.CreatedAt.Value.ToString("MM/dd/yyyy")</div>
+                                            <div class="text-muted">@item.CreatedAt.Value.ToString("HH:mm")</div>
+                                            @{
+                                                var timeAgo = DateTime.Now - item.CreatedAt.Value;
+                                                var timeAgoClass = timeAgo.TotalHours < 1 ? "text-success" : 
+                                                                 timeAgo.TotalDays < 1 ? "text-warning" : "text-muted";
+                                            }
+                                            <small class="@timeAgoClass">
+                                                @if (timeAgo.TotalMinutes < 1)
+                                                {
+                                                    <span>Just now</span>
+                                                }
+                                                else if (timeAgo.TotalHours < 1)
+                                                {
+                                                    <span>@((int)timeAgo.TotalMinutes)m ago</span>
+                                                }
+                                                else if (timeAgo.TotalDays < 1)
+                                                {
+                                                    <span>@((int)timeAgo.TotalHours)h ago</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>@((int)timeAgo.TotalDays)d ago</span>
+                                                }
+                                            </small>
+                                        </div>
                                     }
                                     else
                                     {
@@ -183,17 +351,17 @@
                                 <td>
                                     <div class="btn-group" role="group">
                                         <a asp-action="Details" asp-route-id="@item.ChatsLocDpxid" 
-                                           class="btn btn-sm btn-outline-info" title="View Details">
+                                           class="btn btn-sm btn-outline-info" title="View Details" data-bs-toggle="tooltip">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         <a asp-action="Edit" asp-route-id="@item.ChatsLocDpxid" 
-                                           class="btn btn-sm btn-outline-warning" title="Edit">
+                                           class="btn btn-sm btn-outline-warning" title="Edit" data-bs-toggle="tooltip">
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         @if (User.IsInRole("1")) // Only admin can delete
                                         {
                                             <a asp-action="Delete" asp-route-id="@item.ChatsLocDpxid" 
-                                               class="btn btn-sm btn-outline-danger" title="Delete">
+                                               class="btn btn-sm btn-outline-danger" title="Delete" data-bs-toggle="tooltip">
                                                 <i class="fas fa-trash-alt"></i>
                                             </a>
                                         }
@@ -221,7 +389,9 @@
                             pageNumber = page,
                             message = currentMessage,
                             messageType = currentMessageType,
-                            sentBy = currentSentBy
+                            sentBy = currentSentBy,
+                            userId = currentUserId,
+                            coachId = currentCoachId
                         }),
                         new PagedListRenderOptions
                         {
@@ -265,12 +435,339 @@
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Add tooltips to table cells
-            $('[title]').tooltip();
+            // Load initial unread count
+            loadUnreadCount();
+
+            // Auto-refresh unread count every 30 seconds
+            setInterval(loadUnreadCount, 30000);
 
             // Set selected options based on current values
             $('#messageType').val('@currentMessageType');
             $('#sentBy').val('@currentSentBy');
+
+            // Select All functionality
+            $('#selectAll').change(function() {
+                $('.chat-checkbox').prop('checked', this.checked);
+                updateBulkActions();
+            });
+
+            // Individual checkbox change
+            $('.chat-checkbox').change(function() {
+                updateBulkActions();
+                
+                // Update select all checkbox
+                var totalCheckboxes = $('.chat-checkbox').length;
+                var checkedCheckboxes = $('.chat-checkbox:checked').length;
+                $('#selectAll').prop('checked', totalCheckboxes === checkedCheckboxes);
+            });
+
+            // Quick unread filter
+            $('#showUnreadBtn').click(function() {
+                window.location.href = '@Url.Action("Index", "ChatsLocDpx")?sentBy=&messageType=&message=&isRead=false';
+            });
+
+            // Stats button
+            $('#statsBtn').click(function() {
+                loadStats();
+                $('#statsModal').modal('show');
+            });
+
+            // Refresh button
+            $('#refreshBtn').click(function() {
+                location.reload();
+            });
+
+            // Unread count button
+            $('#unreadBtn').click(function() {
+                window.location.href = '@Url.Action("Index", "ChatsLocDpx")?sentBy=&messageType=&message=&isRead=false';
+            });
+
+            // Mark as read/unread buttons
+            $('.mark-read-btn').click(function() {
+                var chatId = $(this).data('chat-id');
+                markAsRead(chatId, $(this));
+            });
+
+            $('.mark-unread-btn').click(function() {
+                var chatId = $(this).data('chat-id');
+                markAsUnread(chatId, $(this));
+            });
+
+            // Bulk actions
+            $('#bulkMarkReadBtn').click(function() {
+                var selectedIds = getSelectedChatIds();
+                if (selectedIds.length > 0) {
+                    bulkMarkAsRead(selectedIds);
+                }
+            });
+
+            $('#bulkMarkUnreadBtn').click(function() {
+                var selectedIds = getSelectedChatIds();
+                if (selectedIds.length > 0) {
+                    bulkMarkAsUnread(selectedIds);
+                }
+            });
         });
+
+        function updateBulkActions() {
+            var checkedCount = $('.chat-checkbox:checked').length;
+            $('#selectedCount').text(checkedCount);
+            
+            if (checkedCount > 0) {
+                $('#bulkMarkReadBtn, #bulkMarkUnreadBtn').prop('disabled', false);
+            } else {
+                $('#bulkMarkReadBtn, #bulkMarkUnreadBtn').prop('disabled', true);
+            }
+        }
+
+        function getSelectedChatIds() {
+            var ids = [];
+            $('.chat-checkbox:checked').each(function() {
+                ids.push(parseInt($(this).val()));
+            });
+            return ids;
+        }
+
+        function loadUnreadCount() {
+            $.ajax({
+                url: 'https://localhost:7260/api/ChatsLocDpx/unread/count',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('TokenString')
+                },
+                success: function(response) {
+                    $('#unreadCount').text(response.unreadCount);
+                    
+                    // Update badge color based on count
+                    var btn = $('#unreadBtn');
+                    btn.removeClass('btn-outline-warning btn-outline-danger');
+                    if (response.unreadCount > 10) {
+                        btn.addClass('btn-outline-danger');
+                    } else if (response.unreadCount > 0) {
+                        btn.addClass('btn-outline-warning');
+                    } else {
+                        btn.addClass('btn-outline-success');
+                    }
+                },
+                error: function() {
+                    $('#unreadCount').text('?');
+                }
+            });
+        }
+
+        function loadStats() {
+            $('#statsContent').html(`
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading statistics...</p>
+                </div>
+            `);
+
+            $.ajax({
+                url: 'https://localhost:7260/api/ChatsLocDpx/stats',
+                type: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('TokenString')
+                },
+                success: function(stats) {
+                    $('#statsContent').html(`
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <h3 class="text-primary">${stats.totalMessages}</h3>
+                                        <p class="card-text">Total Messages</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card border-warning">
+                                    <div class="card-body">
+                                        <h3 class="text-warning">${stats.unreadMessages}</h3>
+                                        <p class="card-text">Unread Messages</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h3 class="text-success">${stats.readMessages}</h3>
+                                        <p class="card-text">Read Messages</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card border-info">
+                                    <div class="card-body">
+                                        <h3 class="text-info">${stats.todayMessages}</h3>
+                                        <p class="card-text">Today's Messages</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row text-center">
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5>By Type</h5>
+                                        <p>📝 Text: ${stats.textMessages}</p>
+                                        <p>🖼️ Images: ${stats.imageMessages}</p>
+                                        <p>📎 Files: ${stats.fileMessages}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5>By Sender</h5>
+                                        <p>👤 Users: ${stats.userMessages}</p>
+                                        <p>👨‍💼 Coaches: ${stats.coachMessages}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5>Response Stats</h5>
+                                        <p>📎 With Attachments: ${stats.messagesWithAttachments}</p>
+                                        <p>⏱️ With Response: ${stats.messagesWithResponse}</p>
+                                        <p>📊 Avg Response: ${stats.averageResponseTimeHours.toFixed(1)}h</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <small class="text-muted">Last updated: ${new Date(stats.lastUpdated).toLocaleString()}</small>
+                        </div>
+                    `);
+                },
+                error: function() {
+                    $('#statsContent').html('<div class="alert alert-danger">Failed to load statistics</div>');
+                }
+            });
+        }
+
+        function markAsRead(chatId, button) {
+            $.ajax({
+                url: `https://localhost:7260/api/ChatsLocDpx/${chatId}/mark-read`,
+                type: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('TokenString')
+                },
+                success: function() {
+                    // Update UI
+                    var row = button.closest('tr');
+                    row.find('.badge.bg-warning').removeClass('bg-warning').addClass('bg-success')
+                       .html('<i class="fas fa-check-circle"></i> Read');
+                    row.find('.badge').filter(':contains("NEW")').remove();
+                    
+                    // Replace button
+                    button.removeClass('btn-outline-success mark-read-btn')
+                          .addClass('btn-outline-warning mark-unread-btn')
+                          .attr('title', 'Mark as unread')
+                          .html('<i class="fas fa-envelope"></i>');
+                    
+                    // Update checkbox data
+                    row.find('.chat-checkbox').attr('data-read', 'true');
+                    
+                    loadUnreadCount();
+                    showToast('Message marked as read', 'success');
+                },
+                error: function() {
+                    showToast('Failed to mark message as read', 'error');
+                }
+            });
+        }
+
+        function markAsUnread(chatId, button) {
+            $.ajax({
+                url: `https://localhost:7260/api/ChatsLocDpx/${chatId}/mark-unread`,
+                type: 'PATCH',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('TokenString')
+                },
+                success: function() {
+                    // Update UI
+                    var row = button.closest('tr');
+                    row.find('.badge.bg-success').removeClass('bg-success').addClass('bg-warning')
+                       .html('<i class="fas fa-envelope"></i> Unread');
+                    
+                    // Add NEW badge
+                    var messageCell = row.find('.message-preview');
+                    if (messageCell.find('.badge:contains("NEW")').length === 0) {
+                        messageCell.append('<span class="badge bg-warning ms-1">NEW</span>');
+                    }
+                    
+                    // Replace button
+                    button.removeClass('btn-outline-warning mark-unread-btn')
+                          .addClass('btn-outline-success mark-read-btn')
+                          .attr('title', 'Mark as read')
+                          .html('<i class="fas fa-check"></i>');
+                    
+                    // Update checkbox data
+                    row.find('.chat-checkbox').attr('data-read', 'false');
+                    
+                    loadUnreadCount();
+                    showToast('Message marked as unread', 'warning');
+                },
+                error: function() {
+                    showToast('Failed to mark message as unread', 'error');
+                }
+            });
+        }
+
+        function bulkMarkAsRead(chatIds) {
+            $.ajax({
+                url: 'https://localhost:7260/api/ChatsLocDpx/bulk-mark-read',
+                type: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + getCookie('TokenString'),
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({ chatIds: chatIds }),
+                success: function(response) {
+                    showToast(`${response.updatedCount} messages marked as read`, 'success');
+                    location.reload(); // Refresh to show updated status
+                },
+                error: function() {
+                    showToast('Failed to update messages', 'error');
+                }
+            });
+        }
+
+        function bulkMarkAsUnread(chatIds) {
+            // This would need a similar bulk endpoint for unread
+            showToast('Bulk mark as unread - feature coming soon', 'info');
+        }
+
+        function showToast(message, type) {
+            var alertClass = type === 'success' ? 'alert-success' : 
+                           type === 'warning' ? 'alert-warning' : 
+                           type === 'error' ? 'alert-danger' : 'alert-info';
+            
+            var toast = `
+                <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            $('body').append(toast);
+            
+            // Auto dismiss after 3 seconds
+            setTimeout(function() {
+                $('.alert').last().fadeOut();
+            }, 3000);
+        }
+
+        function getCookie(name) {
+            const value = '; ' + document.cookie;
+            const parts = value.split('; ' + name + '=');
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return '';
+        }
     </script>
 }
