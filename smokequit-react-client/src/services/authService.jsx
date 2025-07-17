@@ -1,5 +1,5 @@
 // src/services/authService.js
-import jwtDecode from 'jwt-decode';
+import {jwtDecode} from 'jwt-decode';
 
 export const authService = {
   // Login and store token
@@ -62,3 +62,5 @@ export const authService = {
     return this.hasRole('1');
   }
 };
+
+export default authService;

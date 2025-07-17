@@ -103,6 +103,7 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
         }
 
+        // ✅ FIXED: Add the missing getChatsWithPaging resolver
         [Authorize]
         public async Task<PaginationResult<ChatsLocDpx>> GetChatsWithPaging(int currentPage = 1, int pageSize = 10)
         {
@@ -221,6 +222,7 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
         }
 
+        // ✅ FIXED: Add the missing getCoachesWithPaging resolver
         [Authorize]
         public async Task<PaginationResult<CoachesLocDpx>> GetCoachesWithPaging(int currentPage = 1, int pageSize = 10)
         {

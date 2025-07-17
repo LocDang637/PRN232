@@ -1,10 +1,11 @@
-using SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs;
-using SmokeQuit.Services.LocDPX;
+using HotChocolate.Types.Descriptors;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs;
+using SmokeQuit.Services.LocDPX;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
-using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,27 @@ var jwtSettings = new JwtSettings();
 builder.Configuration.GetSection("JwtSettings").Bind(jwtSettings);
 builder.Services.AddSingleton(jwtSettings);
 
+// CORS Configuration for Vite dev server
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactDevPolicy", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173", "https://localhost:5173") // Vite dev server
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Important for JWT cookies if used
+    });
+
+    // Optional: More permissive policy for development
+    options.AddPolicy("DevelopmentPolicy", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -39,6 +61,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddGraphQLServer()
     .AddQueryType<Queries>()
     .AddMutationType<Mutations>()
+    
     .AddAuthorization() // This requires HotChocolate.AspNetCore.Authorization package
     .BindRuntimeType<DateTime, DateTimeType>();
 

@@ -57,7 +57,15 @@ const ChatList = () => {
 
   const data = isSearching ? searchData : chatsData;
   const loading = isSearching ? searchLoading : chatsLoading;
-  const pagination = data?.searchChatsWithPaging || data?.getChatsWithPaging;
+  // const pagination = data?.searchChatsWithPaging || data?.getChatsWithPaging;
+  const items = isSearching ? data?.searchChatsWithPaging?.items : data?.getChatsLocDpxes;
+const pagination = isSearching ? data?.searchChatsWithPaging : {
+  items: data?.getChatsLocDpxes || [],
+  totalPages: 1,
+  currentPage: 1,
+  totalItems: data?.getChatsLocDpxes?.length || 0,
+  pageSize: data?.getChatsLocDpxes?.length || 0
+};
 
   const refetchData = () => {
     if (isSearching) {
