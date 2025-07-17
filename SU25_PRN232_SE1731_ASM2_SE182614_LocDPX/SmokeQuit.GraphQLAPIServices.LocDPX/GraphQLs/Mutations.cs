@@ -74,7 +74,7 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
         }
 
-        [Authorize(Roles = "1")] // Only admin can delete
+        [Authorize] // Only admin can delete
         public async Task<bool> DeleteChatsLocDpx(int id)
         {
             try
@@ -139,7 +139,7 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
         }
 
-        [Authorize(Roles = "1")] // Only admin can delete
+        [Authorize] // Only admin can delete
         public async Task<bool> DeleteCoachesLocDpx(int id)
         {
             try
@@ -259,5 +259,14 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
     {
         public string Token { get; set; } = string.Empty;
         public SystemUserAccount User { get; set; } = new();
+    }
+    public class ClassSearchChatRequest
+    {
+        public int CurrentPage { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string? MessageType { get; set; }
+        public string? SentBy { get; set; }
+        public bool? IsRead { get; set; }
+        public string? Message { get; set; }
     }
 }

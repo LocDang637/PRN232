@@ -97,7 +97,7 @@ namespace SmokeQuit.Repository.LocDPX
             {
 
                 CurrentPage = currentPage,
-                Items = chats,
+                Items = chats.ToList(),
                 PageSize = pageSize,
                 TotalItems = TotalItem,
                 TotalPages = totalPages
@@ -126,7 +126,7 @@ namespace SmokeQuit.Repository.LocDPX
             var result = new PaginationResult<ChatsLocDpx>
             {
                 CurrentPage = currentPage,
-                Items = query,
+                Items = query.ToList(),
                 PageSize = pageSize,
                 TotalItems = TotalItem,
                 TotalPages = totalPages

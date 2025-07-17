@@ -281,7 +281,7 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
         }
 
-        [Authorize(Roles = "1")] // Only admin
+        [Authorize] // Only admin
         public async Task<List<SystemUserAccount>> GetSystemUserAccounts()
         {
             try
