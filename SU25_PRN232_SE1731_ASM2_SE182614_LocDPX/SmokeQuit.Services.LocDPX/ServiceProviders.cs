@@ -13,10 +13,10 @@ namespace SmokeQuit.Services.LocDPX
         public string Audience { get; set; } = "SmokeQuit.GraphQLClients.BlazorWAS.LocDPX";
         public int ExpirationDays { get; set; } = 7;
     }
+
     public interface IServiceProviders
     {
         SystemUserAccountService UserAccountService { get; }
-
         CoachesLocDpxService CoachesService { get; }
         IChatsLocDpxService ChatsService { get; }
     }

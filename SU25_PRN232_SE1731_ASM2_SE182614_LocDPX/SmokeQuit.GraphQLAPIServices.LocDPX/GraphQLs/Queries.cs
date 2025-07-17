@@ -22,7 +22,7 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
 
         #region JWT Authentication Queries
 
-        [Authorize] // Add this attribute to methods that require authentication
+        [Authorize]
         public async Task<SystemUserAccount?> GetCurrentUser([Service] IHttpContextAccessor httpContextAccessor)
         {
             try
@@ -73,7 +73,8 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
 
         #endregion
 
-        // ChatsLocDpx Queries - Full CRUD
+        #region ChatsLocDpx Queries - Enhanced CRUD
+
         [Authorize]
         public async Task<List<ChatsLocDpx>> GetChatsLocDpxes()
         {
@@ -84,9 +85,10 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
             catch (Exception ex)
             {
-                return new List<ChatsLocDpx>();
+                throw new GraphQLException($"Error getting chats: {ex.Message}");
             }
         }
+
         [Authorize]
         public async Task<ChatsLocDpx?> GetChatsLocDpxById(int id)
         {
@@ -97,40 +99,175 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
             catch (Exception ex)
             {
-                return null;
+                throw new GraphQLException($"Error getting chat by ID: {ex.Message}");
             }
         }
+
+        [Authorize]
+        public async Task<PaginationResult<ChatsLocDpx>> GetChatsWithPaging(int currentPage = 1, int pageSize = 10)
+        {
+            try
+            {
+                var result = await _serviceProvider.ChatsService.GetAllAsync(currentPage, pageSize);
+                return result ?? new PaginationResult<ChatsLocDpx>();
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error getting chats with pagination: {ex.Message}");
+            }
+        }
+
         [Authorize]
         public async Task<PaginationResult<ChatsLocDpx>> SearchChatsWithPaging(ClassSearchChatRequest request)
         {
             try
             {
                 var result = await _serviceProvider.ChatsService.SearchAsyncWithPagination(
-                     request.MessageType, request.SentBy,request.IsRead, request.CurrentPage, request.PageSize);
+                    request.MessageType, request.SentBy, request.IsRead, request.CurrentPage, request.PageSize);
                 return result ?? new PaginationResult<ChatsLocDpx>();
             }
             catch (Exception ex)
             {
-                return new PaginationResult<ChatsLocDpx>();
+                throw new GraphQLException($"Error searching chats: {ex.Message}");
             }
         }
 
-        // CoachesLocDpx Queries - Only GetAll
+        // Enhanced search by message content
+        [Authorize]
+        public async Task<List<ChatsLocDpx>> SearchChatsByMessage(string messageContent)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(messageContent))
+                    return new List<ChatsLocDpx>();
+
+                var allChats = await _serviceProvider.ChatsService.GetAllAsync();
+                return allChats.Items
+                    .Where(c => c.Message != null && c.Message.Contains(messageContent, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error searching chats by message: {ex.Message}");
+            }
+        }
+
+        // Search by multiple criteria
+        [Authorize]
+        public async Task<List<ChatsLocDpx>> SearchChats(string? messageContent, string? messageType, string? sentBy, bool? isRead)
+        {
+            try
+            {
+                var result = await _serviceProvider.ChatsService.SearchAsync(messageType, sentBy, isRead);
+
+                // Additional filter by message content if provided
+                if (!string.IsNullOrWhiteSpace(messageContent))
+                {
+                    result = result.Where(c => c.Message != null &&
+                        c.Message.Contains(messageContent, StringComparison.OrdinalIgnoreCase)).ToList();
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error searching chats: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region CoachesLocDpx Queries - Complete CRUD
+
         [Authorize]
         public async Task<List<CoachesLocDpx>> GetCoachesLocDpxes()
         {
             try
             {
                 var result = await _serviceProvider.CoachesService.GetAllAsync();
-                return result.ToList() ?? new List<CoachesLocDpx>();
+                return result?.ToList() ?? new List<CoachesLocDpx>();
             }
             catch (Exception ex)
             {
-                return new List<CoachesLocDpx>();
+                throw new GraphQLException($"Error getting coaches: {ex.Message}");
             }
         }
 
-        // SystemUserAccount Queries - Only GetUserAccount (login) and GetAll
+        [Authorize]
+        public async Task<CoachesLocDpx?> GetCoachesLocDpxById(int id)
+        {
+            try
+            {
+                var result = await _serviceProvider.CoachesService.GetByIdAsync(id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error getting coach by ID: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        public async Task<CoachesLocDpx?> GetCoachByEmail(string email)
+        {
+            try
+            {
+                var result = await _serviceProvider.CoachesService.GetByEmailAsync(email);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error getting coach by email: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        public async Task<PaginationResult<CoachesLocDpx>> GetCoachesWithPaging(int currentPage = 1, int pageSize = 10)
+        {
+            try
+            {
+                var result = await _serviceProvider.CoachesService.GetAllWithPagingAsync(currentPage, pageSize);
+                return result ?? new PaginationResult<CoachesLocDpx>();
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error getting coaches with pagination: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        public async Task<List<CoachesLocDpx>> SearchCoaches(string? fullName, string? email)
+        {
+            try
+            {
+                var result = await _serviceProvider.CoachesService.SearchAsync(fullName ?? "", email ?? "");
+                return result?.ToList() ?? new List<CoachesLocDpx>();
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error searching coaches: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        public async Task<PaginationResult<CoachesLocDpx>> SearchCoachesWithPaging(string? fullName, string? email, int currentPage = 1, int pageSize = 10)
+        {
+            try
+            {
+                var result = await _serviceProvider.CoachesService.SearchWithPagingAsync(
+                    fullName ?? "", email ?? "", currentPage, pageSize);
+                return result ?? new PaginationResult<CoachesLocDpx>();
+            }
+            catch (Exception ex)
+            {
+                throw new GraphQLException($"Error searching coaches with pagination: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region SystemUserAccount Queries
+
         public async Task<SystemUserAccount?> GetUserAccount(string username, string password)
         {
             try
@@ -140,10 +277,11 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
             catch (Exception ex)
             {
-                return null;
+                throw new GraphQLException($"Error getting user account: {ex.Message}");
             }
         }
 
+        [Authorize(Roles = "1")] // Only admin
         public async Task<List<SystemUserAccount>> GetSystemUserAccounts()
         {
             try
@@ -153,8 +291,10 @@ namespace SmokeQuit.GraphQLAPIServices.LocDPX.GraphQLs
             }
             catch (Exception ex)
             {
-                return new List<SystemUserAccount>();
+                throw new GraphQLException($"Error getting user accounts: {ex.Message}");
             }
         }
+
+        #endregion
     }
 }
