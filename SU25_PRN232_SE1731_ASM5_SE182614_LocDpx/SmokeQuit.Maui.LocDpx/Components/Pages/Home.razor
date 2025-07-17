@@ -1,8 +1,10 @@
 ﻿@page "/"
 @using System.Text
 @using System.Text.Json
+@using System.Net.NetworkInformation
+@using System.Net
 
-<EditForm Model="@chatMessage" OnSubmit="async() => await OcelotSubmit()">
+<EditForm Model="@chatMessage" OnSubmit="async () => await OcelotSubmit()">
     <div class="col-md-4">
         <div class="rounded p-3 h-100">
             <div class="mb-3">
@@ -26,7 +28,11 @@
                 <InputText @bind-Value="chatMessage.MessageType" class="form-control" />
             </div>
             <button type="submit" class="btn btn-danger">Send Chat</button>
+            <button type="button" class="btn btn-info" @onclick="TestConnectivity">Test Connectivity</button>
             <span class="text-danger">@Message</span>
+            <div class="mt-2">
+                <small class="text-info">Platform: @GetPlatform() | Current Test: @currentTestEndpoint</small>
+            </div>
         </div>
     </div>
 </EditForm>
@@ -56,7 +62,8 @@
 @code {
     public ChatMessage chatMessage { get; set; } = new();
     public List<ChatMessage> ChatMessages { get; set; } = new();
-    public string Message { get; set; }
+    public string Message { get; set; } = "";
+    public string currentTestEndpoint { get; set; } = "";
 
     protected override void OnInitialized()
     {
@@ -69,7 +76,7 @@
         chatMessage.IsRead = false;
         chatMessage.CreatedAt = DateTime.Now;
         chatMessage.ResponseTime = DateTime.Now;
-        
+
         // Create coach object
         chatMessage.Coach = new CoachModel
         {
@@ -82,51 +89,144 @@
         };
     }
 
+    private string GetPlatform()
+    {
+#if ANDROID
+        return "Android";
+#elif WINDOWS
+        return "Windows";
+#else
+        return "Other";
+#endif
+    }
+
+    private List<string> GetOptimalEndpoints()
+    {
+        var endpoints = new List<string>();
+
+#if ANDROID
+        // Android emulator specific endpoints
+        endpoints.Add("http://10.0.2.2:5048/gateway/ChatsLocDpx");
+
+        // Try host machine IP for Android device
+        endpoints.Add("http://192.168.1.163:5048/gateway/ChatsLocDpx");
+
+        // Additional fallbacks
+        endpoints.Add("http://10.87.59.29:5048/gateway/ChatsLocDpx");
+
+#elif WINDOWS
+        // Windows - localhost first
+        endpoints.Add("http://localhost:5048/gateway/ChatsLocDpx");
+        endpoints.Add("http://127.0.0.1:5048/gateway/ChatsLocDpx");
+
+#else
+        // Other platforms
+        endpoints.Add("http://localhost:5048/gateway/ChatsLocDpx");
+        endpoints.Add("http://10.0.2.2:5048/gateway/ChatsLocDpx");
+        endpoints.Add("http://192.168.1.163:5048/gateway/ChatsLocDpx");
+#endif
+
+        return endpoints;
+    }
+
+    protected async Task TestConnectivity()
+    {
+        var handler = new HttpClientHandler();
+        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+
+        using (var httpClient = new HttpClient(handler))
+        {
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+
+            var endpoints = GetOptimalEndpoints();
+            Message = $"🔍 Testing {endpoints.Count} endpoints...\n";
+
+            foreach (var endpoint in endpoints)
+            {
+                currentTestEndpoint = endpoint;
+                StateHasChanged();
+
+                try
+                {
+                    Message += $"Testing: {endpoint}\n";
+                    StateHasChanged();
+
+                    // Test basic connectivity first
+                    var testResponse = await httpClient.GetAsync(endpoint.Replace("/gateway/ChatsLocDpx", "/swagger"));
+                    Message += $"  Swagger test: {testResponse.StatusCode}\n";
+
+                    // Test actual endpoint
+                    var pingResponse = await httpClient.GetAsync(endpoint);
+                    Message += $"  Gateway test: {pingResponse.StatusCode}\n";
+
+                    if (testResponse.IsSuccessStatusCode || pingResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed)
+                    {
+                        Message += $"  ✅ {endpoint} is REACHABLE\n\n";
+                    }
+                    else
+                    {
+                        Message += $"  ❌ {endpoint} returned {pingResponse.StatusCode}\n\n";
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    Message += $"  ⏱️ {endpoint} - TIMEOUT\n\n";
+                }
+                catch (HttpRequestException ex)
+                {
+                    Message += $"  🔌 {endpoint} - CONNECTION ERROR: {ex.Message}\n\n";
+                }
+                catch (Exception ex)
+                {
+                    Message += $"  ❗ {endpoint} - ERROR: {ex.GetType().Name}\n\n";
+                }
+
+                StateHasChanged();
+                await Task.Delay(500);
+            }
+
+            currentTestEndpoint = "Test completed";
+            StateHasChanged();
+        }
+    }
+
     protected async Task OcelotSubmit()
     {
         try
         {
             var handler = new HttpClientHandler();
             handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
-            
+
             using (var httpClient = new HttpClient(handler))
             {
-                httpClient.Timeout = TimeSpan.FromSeconds(15);
-                
-                var serializeContent = System.Text.Json.JsonSerializer.Serialize(chatMessage);
-                
-                // Try multiple endpoints in order
-                var baseAddresses = new[]
-                {
-                    "http://10.87.59.29:5048/gateway/ChatsLocDpx",
-                    "http://10.0.2.2:5048/gateway/ChatsLocDpx",
-                    "http://localhost:5048/gateway/ChatsLocDpx"
+                httpClient.Timeout = TimeSpan.FromSeconds(30);
 
-                };
-                
-                Message = $"Starting connection test. JSON: {serializeContent.Substring(0, Math.Min(100, serializeContent.Length))}...";
+                var serializeContent = System.Text.Json.JsonSerializer.Serialize(chatMessage);
+                var endpoints = GetOptimalEndpoints();
+
+                Message = $"Platform: {GetPlatform()}, trying {endpoints.Count} endpoints...\n";
                 StateHasChanged();
-                await Task.Delay(1000);
-                
-                foreach (var baseAddress in baseAddresses)
+
+                // Try each endpoint in order
+                foreach (var endpoint in endpoints)
                 {
+                    currentTestEndpoint = endpoint;
+
                     try
                     {
-                        Message = $"Trying {baseAddress}...";
+                        Message = $"📤 Sending to: {endpoint}...";
                         StateHasChanged();
                         await Task.Delay(500);
-                        
-                        var response = await httpClient.PostAsync(baseAddress, new StringContent(serializeContent, Encoding.UTF8, "application/json"));
+
+                        var response = await httpClient.PostAsync(endpoint,
+                            new StringContent(serializeContent, Encoding.UTF8, "application/json"));
+
                         var responseContent = await response.Content.ReadAsStringAsync();
-                        
-                        Message = $"{baseAddress} -> Status: {response.StatusCode}, Content: {responseContent.Substring(0, Math.Min(50, responseContent.Length))}";
-                        StateHasChanged();
-                        await Task.Delay(1000);
-                        
-                        if (response.StatusCode == System.Net.HttpStatusCode.OK)
+
+                        if (response.IsSuccessStatusCode)
                         {
-                            Message = $"SUCCESS! Chat sent via {baseAddress}";
-                            
+                            Message = $"✅ SUCCESS! Connected via {endpoint}";
+
                             // Add to display list
                             var newChat = new ChatMessage
                             {
@@ -139,21 +239,42 @@
                                 CreatedAt = DateTime.Now
                             };
                             ChatMessages.Add(newChat);
-                            
-                            return; // Success, exit method
+
+                            StateHasChanged();
+                            return; // Success - exit method
                         }
+                        else
+                        {
+                            Message = $"❌ {endpoint} returned {response.StatusCode}: {responseContent}";
+                            StateHasChanged();
+                            await Task.Delay(1000);
+                        }
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        Message = $"⏱️ {endpoint} - Connection timeout";
+                        StateHasChanged();
+                        await Task.Delay(500);
+                        continue;
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Message = $"🔌 {endpoint} - Connection failed: {ex.Message}";
+                        StateHasChanged();
+                        await Task.Delay(500);
+                        continue;
                     }
                     catch (Exception ex)
                     {
-                        Message = $"ERROR {baseAddress}: {ex.GetType().Name} - {ex.Message}";
+                        Message = $"❗ {endpoint} - Error: {ex.GetType().Name}: {ex.Message}";
                         StateHasChanged();
-                        await Task.Delay(1000);
-                        continue; // Try next endpoint
+                        await Task.Delay(500);
+                        continue;
                     }
                 }
-                
-                // If all attempts failed
-                Message = "FAILED: All connection attempts failed. Check if services are running.";
+
+                // If all endpoints failed
+                Message = $"❌ ALL ENDPOINTS FAILED";
             }
         }
         catch (Exception ex)
