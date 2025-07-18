@@ -1,50 +1,27 @@
-using GraphQL.Client.Abstractions;
-using GraphQL.Client.Http;
-using GraphQL.Client.Serializer.Newtonsoft;
-using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX;
 using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Components;
-using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.GraphQLClients;
-using SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services;
 
-var builder = WebAssemblyHostBuilder.CreateDefault(args);
-builder.RootComponents.Add<App>("#app");
-builder.RootComponents.Add<HeadOutlet>("head::after");
+var builder = WebApplication.CreateBuilder(args);
 
-// JWT Authentication Services
-builder.Services.AddScoped<JwtAuthService>();
-builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
-builder.Services.AddAuthorizationCore();
+// Add services to the container.
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
 
-// HTTP Client with JWT Interceptor
-builder.Services.AddScoped<JwtHttpInterceptor>();
-builder.Services.AddScoped(sp =>
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
 {
-    var jwtInterceptor = sp.GetRequiredService<JwtHttpInterceptor>();
-    jwtInterceptor.InnerHandler = new HttpClientHandler();
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
+}
 
-    return new HttpClient(jwtInterceptor)
-    {
-        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
-    };
-});
+app.UseHttpsRedirection();
 
-// GraphQL Client with JWT support
-builder.Services.AddScoped<IGraphQLClient>(sp =>
-{
-    var httpClient = sp.GetRequiredService<HttpClient>();
-    return new GraphQLHttpClient(
-        new GraphQLHttpClientOptions
-        {
-            EndPoint = new Uri(builder.Configuration["GraphQLURI"])
-        },
-        new NewtonsoftJsonSerializer(),
-        httpClient
-    );
-});
+app.UseStaticFiles();
+app.UseAntiforgery();
 
-builder.Services.AddScoped<GraphQLConsumer>();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
-await builder.Build().RunAsync();
+app.Run();
