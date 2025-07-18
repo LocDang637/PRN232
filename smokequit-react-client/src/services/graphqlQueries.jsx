@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client';
 
-// Authentication
+// ===== AUTHENTICATION QUERIES & MUTATIONS =====
 export const LOGIN_MUTATION = gql`
   mutation Login($username: String!, $password: String!) {
     login(username: $username, password: $password) {
@@ -10,11 +10,9 @@ export const LOGIN_MUTATION = gql`
         userName
         fullName
         email
-        phone
         employeeCode
         roleId
         isActive
-        createdDate
       }
     }
   }
@@ -22,24 +20,53 @@ export const LOGIN_MUTATION = gql`
 
 export const GET_CURRENT_USER = gql`
   query GetCurrentUser {
-    getCurrentUser {
+    currentUser {
       userAccountId
       userName
       fullName
       email
-      phone
       employeeCode
       roleId
       isActive
-      createdDate
     }
   }
 `;
 
-// Chat Queries - Use existing method from your C# code
-export const GET_CHATS = gql`
-  query GetChatsWithPaging($currentPage: Int!, $pageSize: Int!) {
-    getChatsLocDpxes {
+// ===== BASIC CHAT QUERIES (Start with minimal fields) =====
+export const GET_ALL_CHATS_BASIC = gql`
+  query GetAllChatsBasic {
+    chatsLocDpxes {
+      chatsLocDpxid
+      message
+      sentBy
+      messageType
+      isRead
+      createdAt
+    }
+  }
+`;
+
+export const GET_ALL_CHATS = gql`
+  query GetAllChats {
+    chatsLocDpxes {
+      chatsLocDpxid
+      userId
+      coachId
+      message
+      sentBy
+      messageType
+      isRead
+      attachmentUrl
+      responseTime
+      createdAt
+    }
+  }
+`;
+
+// Try with relations only if basic works
+export const GET_ALL_CHATS_WITH_RELATIONS = gql`
+  query GetAllChatsWithRelations {
+    chatsLocDpxes {
       chatsLocDpxid
       userId
       coachId
@@ -60,41 +87,6 @@ export const GET_CHATS = gql`
         userName
         fullName
         email
-      }
-    }
-  }
-`;
-
-// FIXED: Matches your C# ClassSearchChatRequest (PascalCase)
-export const SEARCH_CHATS = gql`
-  query SearchChatsWithPaging($request: ClassSearchChatRequest!) {
-    SearchChatsWithPaging(request: $request) {
-      totalPages
-      currentPage
-      pageSize
-      totalItems
-      items {
-        chatsLocDpxid
-        userId
-        coachId
-        message
-        sentBy
-        messageType
-        isRead
-        attachmentUrl
-        responseTime
-        createdAt
-        coach {
-          coachesLocDpxid
-          fullName
-          email
-        }
-        user {
-          userAccountId
-          userName
-          fullName
-          email
-        }
       }
     }
   }
@@ -102,7 +94,7 @@ export const SEARCH_CHATS = gql`
 
 export const GET_CHAT_BY_ID = gql`
   query GetChatById($id: Int!) {
-    GetChatsLocDpxById(id: $id) {
+    chatsLocDpxById(id: $id) {
       chatsLocDpxid
       userId
       coachId
@@ -113,82 +105,24 @@ export const GET_CHAT_BY_ID = gql`
       attachmentUrl
       responseTime
       createdAt
-      coach {
-        coachesLocDpxid
-        fullName
-        email
-      }
-      user {
-        userAccountId
-        userName
-        fullName
-        email
-      }
     }
   }
 `;
 
-// Chat Mutations - FIXED parameter names to match C# schema (PascalCase)
-export const CREATE_CHAT = gql`
-  mutation CreateChat($input: ChatsLocDpxInput!) {
-    CreateChatsLocDpx(createChatsLocDpxInput: $input)
-  }
-`;
-
-export const UPDATE_CHAT = gql`
-  mutation UpdateChat($input: ChatsLocDpxUpdateInput!) {
-    UpdateChatsLocDpx(updateChatsLocDpxInput: $input)
-  }
-`;
-
-export const DELETE_CHAT = gql`
-  mutation DeleteChat($id: Int!) {
-    DeleteChatsLocDpx(id: $id)
-  }
-`;
-
-// Coach Queries - FIXED to match C# schema (PascalCase)
-export const GET_COACHES = gql`
-  query GetCoachesWithPaging($currentPage: Int!, $pageSize: Int!) {
-    GetCoachesWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
-      totalPages
-      currentPage
-      pageSize
-      totalItems
-      items {
-        coachesLocDpxid
-        fullName
-        email
-        phoneNumber
-        bio
-        createdAt
-      }
+// ===== BASIC COACH QUERIES =====
+export const GET_ALL_COACHES_BASIC = gql`
+  query GetAllCoachesBasic {
+    coachesLocDpxes {
+      coachesLocDpxid
+      fullName
+      email
     }
   }
 `;
 
-export const SEARCH_COACHES = gql`
-  query SearchCoachesWithPaging($fullName: String, $email: String, $currentPage: Int!, $pageSize: Int!) {
-    SearchCoachesWithPaging(fullName: $fullName, email: $email, currentPage: $currentPage, pageSize: $pageSize) {
-      totalPages
-      currentPage
-      pageSize
-      totalItems
-      items {
-        coachesLocDpxid
-        fullName
-        email
-        phoneNumber
-        bio
-        createdAt
-      }
-    }
-  }
-`;
-
-export const GET_COACH_BY_ID = gql`
-  query GetCoachById($id: Int!) {
-    GetCoachesLocDpxById(id: $id) {
+export const GET_ALL_COACHES = gql`
+  query GetAllCoaches {
+    coachesLocDpxes {
       coachesLocDpxid
       fullName
       email
@@ -199,32 +133,137 @@ export const GET_COACH_BY_ID = gql`
   }
 `;
 
-// Coach Mutations - FIXED parameter names to match C# schema (PascalCase)
+export const GET_COACH_BY_ID = gql`
+  query GetCoachById($id: Int!) {
+    coachesLocDpxById(id: $id) {
+      coachesLocDpxid
+      fullName
+      email
+      phoneNumber
+      bio
+      createdAt
+    }
+  }
+`;
+
+// ===== PAGINATION QUERIES (Test these second) =====
+export const GET_CHATS_WITH_PAGING = gql`
+  query GetChatsWithPaging($currentPage: Int, $pageSize: Int) {
+    chatsWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
+      totalPages
+      currentPage
+      pageSize
+      totalItems
+      items {
+        chatsLocDpxid
+        message
+        sentBy
+        messageType
+        isRead
+        createdAt
+      }
+    }
+  }
+`;
+
+export const GET_COACHES_WITH_PAGING = gql`
+  query GetCoachesWithPaging($currentPage: Int, $pageSize: Int) {
+    coachesWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
+      totalPages
+      currentPage
+      pageSize
+      totalItems
+      items {
+        coachesLocDpxid
+        fullName
+        email
+        phoneNumber
+        bio
+        createdAt
+      }
+    }
+  }
+`;
+
+// ===== SEARCH QUERIES =====
+export const SEARCH_CHATS_WITH_PAGING = gql`
+  query SearchChatsWithPaging($request: ClassSearchChatRequest!) {
+    searchChatsWithPaging(request: $request) {
+      totalPages
+      currentPage
+      pageSize
+      totalItems
+      items {
+        chatsLocDpxid
+        message
+        sentBy
+        messageType
+        isRead
+        createdAt
+      }
+    }
+  }
+`;
+
+export const SEARCH_COACHES_WITH_PAGING = gql`
+  query SearchCoachesWithPaging($fullName: String, $email: String, $currentPage: Int, $pageSize: Int) {
+    searchCoachesWithPaging(fullName: $fullName, email: $email, currentPage: $currentPage, pageSize: $pageSize) {
+      totalPages
+      currentPage
+      pageSize
+      totalItems
+      items {
+        coachesLocDpxid
+        fullName
+        email
+        phoneNumber
+        bio
+        createdAt
+      }
+    }
+  }
+`;
+
+// ===== MUTATIONS =====
+export const CREATE_CHAT = gql`
+  mutation CreateChat($createChatsLocDpxInput: ChatsLocDpxInput!) {
+    createChatsLocDpx(createChatsLocDpxInput: $createChatsLocDpxInput)
+  }
+`;
+
+export const UPDATE_CHAT = gql`
+  mutation UpdateChat($updateChatsLocDpxInput: ChatsLocDpxUpdateInput!) {
+    updateChatsLocDpx(updateChatsLocDpxInput: $updateChatsLocDpxInput)
+  }
+`;
+
+export const DELETE_CHAT = gql`
+  mutation DeleteChat($id: Int!) {
+    deleteChatsLocDpx(id: $id)
+  }
+`;
+
 export const CREATE_COACH = gql`
-  mutation CreateCoach($input: CoachesLocDpxInput!) {
-    CreateCoachesLocDpx(createCoachInput: $input)
+  mutation CreateCoach($createCoachInput: CoachesLocDpxInput!) {
+    createCoachesLocDpx(createCoachInput: $createCoachInput)
   }
 `;
 
 export const UPDATE_COACH = gql`
-  mutation UpdateCoach($input: CoachesLocDpxUpdateInput!) {
-    UpdateCoachesLocDpx(updateCoachInput: $input)
+  mutation UpdateCoach($updateCoachInput: CoachesLocDpxUpdateInput!) {
+    updateCoachesLocDpx(updateCoachInput: $updateCoachInput)
   }
 `;
 
 export const DELETE_COACH = gql`
   mutation DeleteCoach($id: Int!) {
-    DeleteCoachesLocDpx(id: $id)
+    deleteCoachesLocDpx(id: $id)
   }
 `;
 
-// Get all coaches for dropdown - FIXED query name to match C# schema (PascalCase)
-export const GET_ALL_COACHES_SIMPLE = gql`
-  query GetAllCoaches {
-    GetCoachesLocDpxes {
-      coachesLocDpxid
-      fullName
-      email
-    }
-  }
-`;
+// ===== CONVENIENCE EXPORTS =====
+// Since basic works, let's try with relations
+export const GET_CHATS = GET_ALL_CHATS_WITH_RELATIONS;
+export const GET_COACHES = GET_ALL_COACHES_BASIC;
+export const GET_ALL_COACHES_SIMPLE = GET_ALL_COACHES_BASIC;
+export const SEARCH_CHATS = SEARCH_CHATS_WITH_PAGING;
