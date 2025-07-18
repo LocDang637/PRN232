@@ -1,7 +1,58 @@
 ﻿@page "/"
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
 
-<PageTitle>Home</PageTitle>
+<PageTitle>SmokeQuit - Welcome</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="jumbotron bg-primary text-white p-5 rounded mb-4">
+                <h1 class="display-4">Welcome to SmokeQuit!</h1>
+                <p class="lead">Your comprehensive smoking cessation management system.</p>
+            </div>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Chat Management</h5>
+                    <p class="card-text">View, create, and manage chat conversations between users and coaches. Search and filter messages efficiently.</p>
+                    <a href="/chats" class="btn btn-primary">
+                        <i class="fas fa-arrow-right"></i> Go to Chats
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-tie fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Coach Management</h5>
+                    <p class="card-text">Manage coach profiles, contact information, and specialties. Add new coaches to the system.</p>
+                    <a href="/coaches" class="btn btn-success">
+                        <i class="fas fa-arrow-right"></i> Go to Coaches
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 text-center">
+            <div class="mt-4">
+                <a href="/login" class="btn btn-primary btn-lg me-3">
+                    <i class="fas fa-sign-in-alt"></i> Login to Continue
+                </a>
+            </div>
+
+            <div class="text-muted mt-3">
+                <small>Demo credentials: <strong>admin</strong> / <strong>admin</strong></small>
+            </div>
+        </div>
+    </div>
+</div>

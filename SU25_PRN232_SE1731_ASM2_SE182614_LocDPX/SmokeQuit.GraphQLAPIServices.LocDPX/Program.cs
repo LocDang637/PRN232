@@ -20,7 +20,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("ReactDevPolicy", policy =>
     {
         policy
-            .WithOrigins("http://localhost:5173", "https://localhost:5173") // Vite dev server
+            .WithOrigins("http://localhost:5173", "https://localhost:5173", "https://localhost:7172", "http://localhost:5063") // Vite dev server
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Important for JWT cookies if used
@@ -86,7 +86,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-app.UseCors(o => o.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
+app.UseCors("ReactDevPolicy");
 app.UseHttpsRedirection();
 
 // Add Authentication & Authorization middleware
