@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
@@ -22,7 +23,16 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         {
             _authToken = token;
             _httpClient.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                new AuthenticationHeaderValue("Bearer", token);
+
+            Console.WriteLine($"Auth token set: {token[..Math.Min(token.Length, 20)]}...");
+        }
+
+        public void ClearAuthToken()
+        {
+            _authToken = null;
+            _httpClient.DefaultRequestHeaders.Authorization = null;
+            Console.WriteLine("Auth token cleared");
         }
 
         public async Task<T?> QueryAsync<T>(string query, object? variables = null) where T : class
@@ -50,6 +60,12 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
                 Console.WriteLine($"GraphQL Request to: {_httpClient.BaseAddress}graphql");
                 Console.WriteLine($"GraphQL Request: {json}");
 
+                // Log authorization header
+                if (_httpClient.DefaultRequestHeaders.Authorization != null)
+                {
+                    Console.WriteLine($"Authorization: {_httpClient.DefaultRequestHeaders.Authorization.Scheme} {_httpClient.DefaultRequestHeaders.Authorization.Parameter?[..20]}...");
+                }
+
                 var response = await _httpClient.PostAsync("/graphql", content);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -58,6 +74,12 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    // Check if it's an authentication error
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        throw new UnauthorizedAccessException("Authentication required or token expired");
+                    }
+
                     throw new HttpRequestException($"GraphQL request failed with status {response.StatusCode}: {responseContent}");
                 }
 
@@ -70,6 +92,13 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
                 {
                     var errorMessages = string.Join(", ", result.Errors.Select(e => e.Message));
                     Console.WriteLine($"GraphQL Errors: {errorMessages}");
+
+                    // Check for authentication errors in GraphQL errors
+                    if (result.Errors.Any(e => e.Message.Contains("Unauthorized") || e.Message.Contains("authentication")))
+                    {
+                        throw new UnauthorizedAccessException($"GraphQL Authentication Error: {errorMessages}");
+                    }
+
                     throw new Exception($"GraphQL Error: {errorMessages}");
                 }
 

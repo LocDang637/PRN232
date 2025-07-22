@@ -41,15 +41,49 @@ namespace SmokeQuit.Repository.LocDPX
         {
             try
             {
-                var item = await _context.ChatsLocDpxes.OrderByDescending(x => x.ChatsLocDpxid).FirstOrDefaultAsync();
-                var id = (item != null) ? item.ChatsLocDpxid + 1 : 1;
-                entity.ChatsLocDpxid = id;
-                _context.Add(entity);
-                return await _context.SaveChangesAsync();
+                // Clear any existing tracking to avoid conflicts
+                _context.ChangeTracker.Clear();
+
+                // Validate required foreign keys exist
+                var userExists = await _context.SystemUserAccounts.AnyAsync(u => u.UserAccountId == entity.UserId);
+                if (!userExists)
+                {
+                    throw new InvalidOperationException($"User with ID {entity.UserId} does not exist.");
+                }
+
+                var coachExists = await _context.CoachesLocDpxes.AnyAsync(c => c.CoachesLocDpxid == entity.CoachId);
+                if (!coachExists)
+                {
+                    throw new InvalidOperationException($"Coach with ID {entity.CoachId} does not exist.");
+                }
+
+                // ✅ DON'T set the ID - let the database handle it since it's an IDENTITY column
+                // The database will auto-generate the ID
+                entity.ChatsLocDpxid = 0; // Reset to 0 to ensure EF treats it as a new entity
+
+                // Ensure required fields are not null
+                entity.Message = entity.Message ?? "";
+                entity.SentBy = entity.SentBy ?? "";
+                entity.MessageType = entity.MessageType ?? "";
+                entity.CreatedAt = entity.CreatedAt ?? DateTime.Now;
+
+                // Don't set navigation properties to avoid tracking issues
+                entity.Coach = null;
+                entity.User = null;
+
+                _context.ChatsLocDpxes.Add(entity);
+                var result = await _context.SaveChangesAsync();
+                return result;
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message);
+                // Log the full exception details
+                Console.WriteLine($"Repository CreateAsync Error: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
+                throw; // Re-throw to preserve stack trace
             }
         }
 

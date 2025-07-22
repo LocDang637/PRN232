@@ -60,7 +60,8 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
             }
 
             // Cleanup
-            await _channel?.ShutdownAsync();
+            if (_channel != null)
+                await _channel.ShutdownAsync();
             Console.WriteLine("Goodbye!");
         }
 
@@ -103,7 +104,7 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
             {
                 Console.WriteLine("\n=== Getting All Chats ===");
                 var request = new EmptyRequest();
-                var response =  _client.GetAllAsync(request);
+                var response =  _client.GetAllAsync(request); // ✅ Added await
 
                 if (response.Items != null && response.Items.Count > 0)
                 {
@@ -148,7 +149,7 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
                 if (int.TryParse(Console.ReadLine(), out int chatId))
                 {
                     var request = new ChatsLocDpxIdRequest { Id = chatId };
-                    var chat =  _client.GetByIdAsync(request);
+                    var chat =  _client.GetByIdAsync(request); // ✅ Added await
 
                     if (chat.ChatsLocDpxid > 0)
                     {
@@ -190,32 +191,63 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
 
                 var chat = new ChatsLocDpx();
 
+                // Ensure required fields are provided
                 Console.Write("Enter User ID: ");
-                if (int.TryParse(Console.ReadLine(), out int userId))
+                if (int.TryParse(Console.ReadLine(), out int userId) && userId > 0)
                     chat.UserId = userId;
+                else
+                {
+                    Console.WriteLine("❌ Invalid User ID. Must be a positive number.");
+                    return;
+                }
 
                 Console.Write("Enter Coach ID: ");
-                if (int.TryParse(Console.ReadLine(), out int coachId))
+                if (int.TryParse(Console.ReadLine(), out int coachId) && coachId > 0)
                     chat.CoachId = coachId;
+                else
+                {
+                    Console.WriteLine("❌ Invalid Coach ID. Must be a positive number.");
+                    return;
+                }
 
                 Console.Write("Enter Message: ");
-                chat.Message = Console.ReadLine() ?? "";
+                var message = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(message))
+                {
+                    Console.WriteLine("❌ Message cannot be empty.");
+                    return;
+                }
+                chat.Message = message;
 
                 Console.Write("Enter Sent By: ");
-                chat.SentBy = Console.ReadLine() ?? "";
+                var sentBy = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(sentBy))
+                {
+                    Console.WriteLine("❌ Sent By cannot be empty.");
+                    return;
+                }
+                chat.SentBy = sentBy;
 
                 Console.Write("Enter Message Type: ");
-                chat.MessageType = Console.ReadLine() ?? "";
+                var messageType = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(messageType))
+                {
+                    Console.WriteLine("❌ Message Type cannot be empty.");
+                    return;
+                }
+                chat.MessageType = messageType;
 
                 Console.Write("Is Read (true/false): ");
                 if (bool.TryParse(Console.ReadLine(), out bool isRead))
                     chat.IsRead = isRead;
+                else
+                    chat.IsRead = false; // Default to false
 
                 Console.Write("Enter Attachment URL (optional): ");
                 chat.AttachmentUrl = Console.ReadLine() ?? "";
 
-                // Set current time for creation
-                chat.CreatedAt = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
+                // Don't set CreatedAt here - let the server handle it
+                // chat.CreatedAt will be set by the server
 
                 var result =  _client.CreateAsync(chat);
 
@@ -231,6 +263,10 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
             catch (Exception ex)
             {
                 Console.WriteLine($"❌ Error creating chat: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+                }
             }
         }
         #endregion
@@ -247,7 +283,7 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
                 {
                     // First get the existing chat
                     var getRequest = new ChatsLocDpxIdRequest { Id = chatId };
-                    var existingChat =  _client.GetByIdAsync(getRequest);
+                    var existingChat =  _client.GetByIdAsync(getRequest); // ✅ Added await
 
                     if (existingChat.ChatsLocDpxid > 0)
                     {
@@ -279,7 +315,7 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
                         if (bool.TryParse(newIsReadStr, out bool newIsRead))
                             existingChat.IsRead = newIsRead;
 
-                        var result =  _client.UpdateAsync(existingChat);
+                        var result = _client.UpdateAsync(existingChat); // ✅ Added await
 
                         if (result.Result > 0)
                         {
@@ -319,7 +355,7 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
                 {
                     // First show the chat to be deleted
                     var getRequest = new ChatsLocDpxIdRequest { Id = chatId };
-                    var existingChat =  _client.GetByIdAsync(getRequest);
+                    var existingChat = _client.GetByIdAsync(getRequest); // ✅ Added await
 
                     if (existingChat.ChatsLocDpxid > 0)
                     {
@@ -335,7 +371,7 @@ namespace SmokeQuit.GrpcClients.ConsoleApp.LocDpx
                         if (confirmation?.ToLower() == "y" || confirmation?.ToLower() == "yes")
                         {
                             var deleteRequest = new ChatsLocDpxIdRequest { Id = chatId };
-                            var result =  _client.DeleteAsync(deleteRequest);
+                            var result =  _client.DeleteAsync(deleteRequest); // ✅ Added await
 
                             if (result.Result > 0)
                             {

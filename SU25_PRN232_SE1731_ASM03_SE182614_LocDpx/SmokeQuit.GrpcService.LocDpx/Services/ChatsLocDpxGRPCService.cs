@@ -82,26 +82,66 @@ namespace SmokeQuit.GrpcService.LocDpx.Services
         {
             try
             {
+                // Validate required fields
+                if (request.UserId <= 0)
+                {
+                    Console.WriteLine("Invalid UserId: must be greater than 0");
+                    return new MutationResult { Result = -1 };
+                }
+
+                if (request.CoachId <= 0)
+                {
+                    Console.WriteLine("Invalid CoachId: must be greater than 0");
+                    return new MutationResult { Result = -1 };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.Message))
+                {
+                    Console.WriteLine("Message cannot be empty");
+                    return new MutationResult { Result = -1 };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.SentBy))
+                {
+                    Console.WriteLine("SentBy cannot be empty");
+                    return new MutationResult { Result = -1 };
+                }
+
+                if (string.IsNullOrWhiteSpace(request.MessageType))
+                {
+                    Console.WriteLine("MessageType cannot be empty");
+                    return new MutationResult { Result = -1 };
+                }
+
                 // Convert protobuf model to domain model
                 var domainChat = new SmokeQuit.Repository.LocDPX.Models.ChatsLocDpx
                 {
                     UserId = request.UserId,
                     CoachId = request.CoachId,
-                    Message = request.Message,
-                    SentBy = request.SentBy,
-                    MessageType = request.MessageType,
+                    Message = request.Message.Trim(),
+                    SentBy = request.SentBy.Trim(),
+                    MessageType = request.MessageType.Trim(),
                     IsRead = request.IsRead,
-                    AttachmentUrl = string.IsNullOrEmpty(request.AttachmentUrl) ? null : request.AttachmentUrl,
-                    ResponseTime = string.IsNullOrEmpty(request.ResponseTime) ? null : DateTime.Parse(request.ResponseTime),
-                    CreatedAt = string.IsNullOrEmpty(request.CreatedAt) ? null : DateTime.Parse(request.CreatedAt)
+                    AttachmentUrl = string.IsNullOrWhiteSpace(request.AttachmentUrl) ? null : request.AttachmentUrl.Trim(),
+                    ResponseTime = null, // Set to null for new chats initially
+                    CreatedAt = DateTime.Now // Always set CreatedAt to current time for new records
                 };
 
+                Console.WriteLine($"Creating chat for UserId: {domainChat.UserId}, CoachId: {domainChat.CoachId}");
+
                 var result = await _serviceProviders.ChatsService.CreateAsync(domainChat);
+
+                Console.WriteLine($"Chat creation result: {result}");
                 return new MutationResult { Result = result };
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error in CreateAsync: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return new MutationResult { Result = -1 };
             }
         }

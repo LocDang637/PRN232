@@ -15,6 +15,28 @@
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
+
+    <!-- Initialize authentication on app start -->
+    <script>
+        window.blazorCulture = {
+            get: () => window.localStorage['BlazorCulture'],
+            set: (value) => window.localStorage['BlazorCulture'] = value
+        };
+
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('App loaded, checking authentication...');
+        });
+
+        // Helper functions for localStorage debugging
+        window.authDebug = {
+            getToken: () => localStorage.getItem('smokeQuitToken'),
+            getUser: () => localStorage.getItem('smokeQuitUser'),
+            clearAuth: () => {
+                localStorage.removeItem('smokeQuitToken');
+                localStorage.removeItem('smokeQuitUser');
+            }
+        };
+    </script>
 </body>
 
 </html>

@@ -7,15 +7,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Register services first
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<ChatService>();
-builder.Services.AddScoped<CoachService>();
 // Configure HttpClient with a name and proper base address
 builder.Services.AddHttpClient("GraphQLClient", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7045");
     client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.Timeout = TimeSpan.FromSeconds(30); // Add timeout
 });
 
 // Register GraphQLService with explicit HttpClient factory
@@ -26,6 +23,11 @@ builder.Services.AddScoped<GraphQLService>(serviceProvider =>
     var configuration = serviceProvider.GetRequiredService<IConfiguration>();
     return new GraphQLService(httpClient, configuration);
 });
+
+// Register services - order matters for DI
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ChatService>();
+builder.Services.AddScoped<CoachService>();
 
 var app = builder.Build();
 
