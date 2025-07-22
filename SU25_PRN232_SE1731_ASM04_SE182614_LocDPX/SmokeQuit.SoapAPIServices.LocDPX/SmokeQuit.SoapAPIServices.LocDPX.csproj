@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\ASM2\SU25_PRN232_SE1731_ASM2_SE182614_LocDPX\SmokeQuit.Services.LocDPX\SmokeQuit.Services.LocDPX.csproj" />
+    <ProjectReference Include="..\..\SU25_PRN232_SE1731_ASM2_SE182614_LocDPX\SmokeQuit.Services.LocDPX\SmokeQuit.Services.LocDPX.csproj" />
   </ItemGroup>
 
 </Project>

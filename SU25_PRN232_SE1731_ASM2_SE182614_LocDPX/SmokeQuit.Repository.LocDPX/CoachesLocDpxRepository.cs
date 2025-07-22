@@ -20,14 +20,28 @@ namespace SmokeQuit.Repository.LocDPX
         {
             try
             {
-                var item = await _context.CoachesLocDpxes.OrderByDescending(x => x.CoachesLocDpxid).FirstOrDefaultAsync();
-                var id = (item != null) ? item.CoachesLocDpxid + 1 : 1;
-                entity.CoachesLocDpxid = id;
-                _context.Add(entity);
+                // Clear any existing tracking to avoid conflicts
+                _context.ChangeTracker.Clear();
+
+                // ✅ DON'T set the ID - let the database handle it since it's an IDENTITY column
+                // The database will auto-generate the ID
+                entity.CoachesLocDpxid = 0; // Reset to 0 to ensure EF treats it as a new entity
+
+                // Ensure required fields are not null
+                entity.FullName = entity.FullName ?? "";
+                entity.Email = entity.Email ?? "";
+                entity.CreatedAt = entity.CreatedAt ?? DateTime.Now;
+
+                _context.CoachesLocDpxes.Add(entity);
                 return await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"Repository CoachesLocDpx CreateAsync Error: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
                 throw new Exception(ex.Message);
             }
         }
