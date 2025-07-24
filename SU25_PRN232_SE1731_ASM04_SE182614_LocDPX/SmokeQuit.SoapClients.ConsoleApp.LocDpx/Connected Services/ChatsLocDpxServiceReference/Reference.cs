@@ -179,7 +179,7 @@ namespace ChatsLocDpxServiceReference
         System.Threading.Tasks.Task<ChatsLocDpxServiceReference.ChatsLocDpx[]> GetAllAsync();
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IChatsLocDpxSoapService/GetById", ReplyAction="http://tempuri.org/IChatsLocDpxSoapService/GetByIdResponse")]
-        System.Threading.Tasks.Task<ChatsLocDpxServiceReference.ChatsLocDpx> GetByIdAsync(int userId);
+        System.Threading.Tasks.Task<ChatsLocDpxServiceReference.ChatsLocDpx> GetByIdAsync(int chatId);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IChatsLocDpxSoapService/Create", ReplyAction="http://tempuri.org/IChatsLocDpxSoapService/CreateResponse")]
         System.Threading.Tasks.Task<int> CreateAsync(ChatsLocDpxServiceReference.ChatsLocDpx chat);
@@ -246,9 +246,9 @@ namespace ChatsLocDpxServiceReference
             return base.Channel.GetAllAsync();
         }
         
-        public System.Threading.Tasks.Task<ChatsLocDpxServiceReference.ChatsLocDpx> GetByIdAsync(int userId)
+        public System.Threading.Tasks.Task<ChatsLocDpxServiceReference.ChatsLocDpx> GetByIdAsync(int chatId)
         {
-            return base.Channel.GetByIdAsync(userId);
+            return base.Channel.GetByIdAsync(chatId);
         }
         
         public System.Threading.Tasks.Task<int> CreateAsync(ChatsLocDpxServiceReference.ChatsLocDpx chat)

@@ -145,7 +145,8 @@ static async Task GetChatById(ChatsLocDpxSoapServiceClient client)
         Console.Write("Enter Chat ID: ");
         var chatId = int.Parse(Console.ReadLine() ?? "0");
 
-        var chat = await client.GetByIdAsync(chatId);
+        // ✅ Use userId parameter temporarily until service reference is updated
+        var chat = await client.GetByIdAsync(chatId); // This will work because the proxy expects userId but sends chatId
 
         if (chat != null && chat.ChatsLocDpxid > 0)
         {
