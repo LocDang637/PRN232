@@ -22,8 +22,26 @@ namespace SmokeQuit.Services.LocDPX
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var entity = await _chatsLocDpxRepository.GetByIdAsync(id);
-            return await _chatsLocDpxRepository.RemoveAsync(entity);
+            try
+            {
+                // Clear tracking context to prevent conflicts
+                _chatsLocDpxRepository._context.ChangeTracker.Clear();
+
+                // Create a new entity with just the ID
+                var entityToDelete = new ChatsLocDpx { ChatsLocDpxid = id };
+
+                // Attach and remove
+                _chatsLocDpxRepository._context.ChatsLocDpxes.Attach(entityToDelete);
+                _chatsLocDpxRepository._context.ChatsLocDpxes.Remove(entityToDelete);
+
+                var result = await _chatsLocDpxRepository._context.SaveChangesAsync();
+                return result > 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Delete Error: {ex.Message}");
+                return false;
+            }
         }
 
         public async Task<ChatsLocDpx> GetGetByIdAsync(int id)

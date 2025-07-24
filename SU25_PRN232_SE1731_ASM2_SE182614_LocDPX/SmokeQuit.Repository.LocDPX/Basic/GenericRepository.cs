@@ -11,7 +11,7 @@ namespace SmokeQuit.Repository.LocDPX.Basic
 {
     public class GenericRepository<T> where T : class
     {
-        protected SmokeQuitDbContext _context;
+        public SmokeQuitDbContext _context;
 
         public GenericRepository()
         {

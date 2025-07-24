@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_COACHES, SEARCH_COACHES, DELETE_COACH } from '../../services/graphqlQueries';
+import { GET_COACHES_WITH_PAGING, SEARCH_COACHES_WITH_PAGING, DELETE_COACH } from '../../services/graphqlQueries';
 import { useAuth } from '../../context/AuthContext';
 import Pagination from '../Common/Pagination';
 import CoachForm from './CoachForm';
@@ -19,16 +19,18 @@ const CoachList = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [coachToDelete, setCoachToDelete] = useState(null);
   const [selectedCoach, setSelectedCoach] = useState(null);
+  const [errors, setErrors] = useState({});
 
   // Query for regular coach loading
-  const { data: coachesData, loading: coachesLoading, refetch: refetchCoaches } = useQuery(GET_COACHES, {
+  const { data: coachesData, loading: coachesLoading, refetch: refetchCoaches } = useQuery(GET_COACHES_WITH_PAGING, {
     variables: { currentPage, pageSize },
     skip: isSearching,
-    notifyOnNetworkStatusChange: true
+    notifyOnNetworkStatusChange: true,
+    errorPolicy: 'all'
   });
 
   // Query for search
-  const { data: searchData, loading: searchLoading, refetch: refetchSearch } = useQuery(SEARCH_COACHES, {
+  const { data: searchData, loading: searchLoading, refetch: refetchSearch } = useQuery(SEARCH_COACHES_WITH_PAGING, {
     variables: {
       fullName: searchFilters.fullName || null,
       email: searchFilters.email || null,
@@ -36,25 +38,28 @@ const CoachList = () => {
       pageSize
     },
     skip: !isSearching,
-    notifyOnNetworkStatusChange: true
+    notifyOnNetworkStatusChange: true,
+    errorPolicy: 'all'
   });
 
   // Delete mutation
-  const [deleteCoach] = useMutation(DELETE_COACH, {
-    onCompleted: () => {
+  const [deleteCoach, { loading: deleteLoading }] = useMutation(DELETE_COACH, {
+    onCompleted: (data) => {
+      console.log('Delete completed:', data);
       setShowDeleteModal(false);
       setCoachToDelete(null);
       refetchData();
     },
     onError: (error) => {
       console.error('Delete error:', error);
-      alert('Failed to delete coach: ' + (error.message || 'Unknown error'));
+      setErrors({ general: error.message || 'Failed to delete coach' });
+      // Don't close modal on error so user can see the error
     }
   });
 
   const data = isSearching ? searchData : coachesData;
   const loading = isSearching ? searchLoading : coachesLoading;
-  const pagination = data?.searchCoachesWithPaging || data?.getCoachesWithPaging;
+  const pagination = data?.searchCoachesWithPaging || data?.coachesWithPaging;
 
   const refetchData = () => {
     if (isSearching) {
@@ -96,9 +101,19 @@ const CoachList = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (coachToDelete) {
-      deleteCoach({ variables: { id: coachToDelete.coachesLocDpxid } });
+      console.log('Attempting to delete coach:', coachToDelete.coachesLocDpxid);
+      setErrors({}); // Clear any previous errors
+      try {
+        await deleteCoach({ 
+          variables: { id: coachToDelete.coachesLocDpxid },
+          errorPolicy: 'all' 
+        });
+      } catch (error) {
+        console.error('Delete mutation error:', error);
+        setErrors({ general: error.message || 'Failed to delete coach' });
+      }
     }
   };
 
@@ -418,6 +433,12 @@ const CoachList = () => {
                 ></button>
               </div>
               <div className="modal-body">
+                {errors.general && (
+                  <div className="alert alert-danger">
+                    <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                    {errors.general}
+                  </div>
+                )}
                 <p>Are you sure you want to delete this coach?</p>
                 <div className="bg-light p-3 rounded">
                   <strong>Name:</strong> {coachToDelete?.fullName}<br/>
@@ -431,7 +452,11 @@ const CoachList = () => {
                 <button 
                   type="button" 
                   className="btn btn-secondary" 
-                  onClick={() => setShowDeleteModal(false)}
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setErrors({});
+                  }}
+                  disabled={deleteLoading}
                 >
                   Cancel
                 </button>
@@ -439,9 +464,19 @@ const CoachList = () => {
                   type="button" 
                   className="btn btn-danger" 
                   onClick={confirmDelete}
+                  disabled={deleteLoading}
                 >
-                  <i className="bi bi-trash me-2"></i>
-                  Delete
+                  {deleteLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-trash me-2"></i>
+                      Delete
+                    </>
+                  )}
                 </button>
               </div>
             </div>

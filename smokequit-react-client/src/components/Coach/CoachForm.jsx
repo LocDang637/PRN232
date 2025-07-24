@@ -97,7 +97,8 @@ const CoachForm = ({ coach, onClose }) => {
 
     try {
       const variables = {
-        input: {
+        [isEditing ? 'updateCoachInput' : 'createCoachInput']: {
+          ...(isEditing && { coachesLocDpxid: coach.coachesLocDpxid }),
           fullName: formData.fullName.trim(),
           email: formData.email.trim().toLowerCase(),
           phoneNumber: formData.phoneNumber.trim() || null,
@@ -106,7 +107,6 @@ const CoachForm = ({ coach, onClose }) => {
       };
 
       if (isEditing) {
-        variables.input.coachesLocDpxid = coach.coachesLocDpxid;
         await updateCoach({ variables });
       } else {
         await createCoach({ variables });

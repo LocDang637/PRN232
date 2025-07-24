@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
-import { CREATE_CHAT, UPDATE_CHAT, GET_ALL_COACHES_SIMPLE } from '../../services/graphqlQueries';
+import { CREATE_CHAT, UPDATE_CHAT, GET_ALL_COACHES } from '../../services/graphqlQueries';
 import { useAuth } from '../../context/AuthContext';
 
 const ChatForm = ({ chat, onClose }) => {
@@ -12,7 +12,7 @@ const ChatForm = ({ chat, onClose }) => {
     coachId: '',
     message: '',
     sentBy: 'User',
-    messageType: 'text',
+    messageType: 'Text',
     isRead: false,
     attachmentUrl: '',
     responseTime: ''
@@ -21,7 +21,7 @@ const ChatForm = ({ chat, onClose }) => {
   const [errors, setErrors] = useState({});
 
   // Get coaches for dropdown
-  const { data: coachesData, loading: coachesLoading } = useQuery(GET_ALL_COACHES_SIMPLE);
+  const { data: coachesData, loading: coachesLoading } = useQuery(GET_ALL_COACHES);
 
   const [createChat, { loading: createLoading }] = useMutation(CREATE_CHAT, {
     onCompleted: () => {
@@ -52,7 +52,7 @@ const ChatForm = ({ chat, onClose }) => {
         coachId: chat.coachId || '',
         message: chat.message || '',
         sentBy: chat.sentBy || 'User',
-        messageType: chat.messageType || 'text',
+        messageType: chat.messageType || 'Text',
         isRead: chat.isRead || false,
         attachmentUrl: chat.attachmentUrl || '',
         responseTime: chat.responseTime ? new Date(chat.responseTime).toISOString().slice(0, 16) : ''
@@ -85,8 +85,12 @@ const ChatForm = ({ chat, onClose }) => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.userId) newErrors.userId = 'User is required';
-    if (!formData.coachId) newErrors.coachId = 'Coach is required';
+    // Only validate userId and coachId for new chats
+    if (!isEditing) {
+      if (!formData.userId) newErrors.userId = 'User is required';
+      if (!formData.coachId) newErrors.coachId = 'Coach is required';
+    }
+    
     if (!formData.message.trim()) newErrors.message = 'Message is required';
     if (!formData.sentBy) newErrors.sentBy = 'Sent By is required';
     if (!formData.messageType) newErrors.messageType = 'Message Type is required';
@@ -101,23 +105,34 @@ const ChatForm = ({ chat, onClose }) => {
     if (!validateForm()) return;
 
     try {
-      const variables = {
-        input: {
-          userId: parseInt(formData.userId),
-          coachId: parseInt(formData.coachId),
-          message: formData.message.trim(),
-          sentBy: formData.sentBy,
-          messageType: formData.messageType,
-          isRead: formData.isRead,
-          attachmentUrl: formData.attachmentUrl.trim() || null,
-          responseTime: formData.responseTime ? new Date(formData.responseTime).toISOString() : null
-        }
-      };
-
       if (isEditing) {
-        variables.input.chatsLocDpxid = chat.chatsLocDpxid;
+        // Update mutation - only include editable fields
+        const variables = {
+          updateChatsLocDpxInput: {
+            chatsLocDpxid: chat.chatsLocDpxid,
+            message: formData.message.trim(),
+            sentBy: formData.sentBy,
+            messageType: formData.messageType,
+            isRead: formData.isRead,
+            attachmentUrl: formData.attachmentUrl.trim() || null,
+            responseTime: formData.responseTime ? new Date(formData.responseTime).toISOString() : null
+          }
+        };
         await updateChat({ variables });
       } else {
+        // Create mutation - include all fields including foreign keys
+        const variables = {
+          createChatsLocDpxInput: {
+            userId: parseInt(formData.userId),
+            coachId: parseInt(formData.coachId),
+            message: formData.message.trim(),
+            sentBy: formData.sentBy,
+            messageType: formData.messageType,
+            isRead: formData.isRead,
+            attachmentUrl: formData.attachmentUrl.trim() || null,
+            responseTime: formData.responseTime ? new Date(formData.responseTime).toISOString() : null
+          }
+        };
         await createChat({ variables });
       }
     } catch (error) {
@@ -165,7 +180,7 @@ const ChatForm = ({ chat, onClose }) => {
                     className={`form-select ${errors.coachId ? 'is-invalid' : ''}`}
                     value={formData.coachId}
                     onChange={handleChange}
-                    disabled={loading || coachesLoading}
+                    disabled={loading || coachesLoading || isEditing}
                   >
                     <option value="">Select a coach...</option>
                     {coaches.map(coach => (
@@ -175,6 +190,12 @@ const ChatForm = ({ chat, onClose }) => {
                     ))}
                   </select>
                   {errors.coachId && <div className="invalid-feedback">{errors.coachId}</div>}
+                  {isEditing && (
+                    <div className="form-text text-info">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Coach cannot be changed when editing
+                    </div>
+                  )}
                 </div>
 
                 {/* User ID (for admin/editing) */}
@@ -189,10 +210,16 @@ const ChatForm = ({ chat, onClose }) => {
                     className={`form-control ${errors.userId ? 'is-invalid' : ''}`}
                     value={formData.userId}
                     onChange={handleChange}
-                    disabled={loading}
+                    disabled={loading || isEditing}
                     min="1"
                   />
                   {errors.userId && <div className="invalid-feedback">{errors.userId}</div>}
+                  {isEditing && (
+                    <div className="form-text text-info">
+                      <i className="bi bi-info-circle me-1"></i>
+                      User ID cannot be changed when editing
+                    </div>
+                  )}
                 </div>
 
                 {/* Message */}
@@ -249,9 +276,9 @@ const ChatForm = ({ chat, onClose }) => {
                     onChange={handleChange}
                     disabled={loading}
                   >
-                    <option value="text">Text</option>
-                    <option value="image">Image</option>
-                    <option value="file">File</option>
+                    <option value="Text">Text</option>
+                    <option value="Image">Image</option>
+                    <option value="File">File</option>
                   </select>
                   {errors.messageType && <div className="invalid-feedback">{errors.messageType}</div>}
                 </div>

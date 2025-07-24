@@ -32,20 +32,13 @@ export const GET_CURRENT_USER = gql`
   }
 `;
 
-// ===== BASIC CHAT QUERIES (Start with minimal fields) =====
-export const GET_ALL_CHATS_BASIC = gql`
-  query GetAllChatsBasic {
-    chatsLocDpxes {
-      chatsLocDpxid
-      message
-      sentBy
-      messageType
-      isRead
-      createdAt
-    }
+export const VALIDATE_TOKEN = gql`
+  query ValidateToken($token: String!) {
+    validateToken(token: $token)
   }
 `;
 
+// ===== CHAT QUERIES =====
 export const GET_ALL_CHATS = gql`
   query GetAllChats {
     chatsLocDpxes {
@@ -59,32 +52,8 @@ export const GET_ALL_CHATS = gql`
       attachmentUrl
       responseTime
       createdAt
-    }
-  }
-`;
-
-// Try with relations only if basic works
-export const GET_ALL_CHATS_WITH_RELATIONS = gql`
-  query GetAllChatsWithRelations {
-    chatsLocDpxes {
-      chatsLocDpxid
-      userId
-      coachId
-      message
-      sentBy
-      messageType
-      isRead
-      attachmentUrl
-      responseTime
-      createdAt
       coach {
         coachesLocDpxid
-        fullName
-        email
-      }
-      user {
-        userAccountId
-        userName
         fullName
         email
       }
@@ -105,21 +74,114 @@ export const GET_CHAT_BY_ID = gql`
       attachmentUrl
       responseTime
       createdAt
+      coach {
+        coachesLocDpxid
+        fullName
+        email
+      }
     }
   }
 `;
 
-// ===== BASIC COACH QUERIES =====
-export const GET_ALL_COACHES_BASIC = gql`
-  query GetAllCoachesBasic {
-    coachesLocDpxes {
-      coachesLocDpxid
-      fullName
-      email
+export const GET_CHATS_WITH_PAGING = gql`
+  query GetChatsWithPaging($currentPage: Int!, $pageSize: Int!) {
+    chatsWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
+      totalPages
+      currentPage
+      pageSize
+      totalItems
+      hasNextPage
+      hasPreviousPage
+      items {
+        chatsLocDpxid
+        userId
+        coachId
+        message
+        sentBy
+        messageType
+        isRead
+        attachmentUrl
+        responseTime
+        createdAt
+        coach {
+          coachesLocDpxid
+          fullName
+          email
+        }
+      }
     }
   }
 `;
 
+export const SEARCH_CHATS_BY_MESSAGE = gql`
+  query SearchChatsByMessage($messageContent: String!) {
+    searchChatsByMessage(messageContent: $messageContent) {
+      chatsLocDpxid
+      userId
+      coachId
+      message
+      sentBy
+      messageType
+      isRead
+      createdAt
+      coach {
+        coachesLocDpxid
+        fullName
+        email
+      }
+    }
+  }
+`;
+
+export const SEARCH_CHATS = gql`
+  query SearchChats($messageContent: String, $messageType: String, $sentBy: String, $isRead: Boolean) {
+    searchChats(messageContent: $messageContent, messageType: $messageType, sentBy: $sentBy, isRead: $isRead) {
+      chatsLocDpxid
+      userId
+      coachId
+      message
+      sentBy
+      messageType
+      isRead
+      createdAt
+      coach {
+        coachesLocDpxid
+        fullName
+        email
+      }
+    }
+  }
+`;
+
+export const SEARCH_CHATS_WITH_PAGING = gql`
+  query SearchChatsWithPaging($request: ClassSearchChatRequestInput!) {
+    searchChatsWithPaging(request: $request) {
+      totalPages
+      currentPage
+      pageSize
+      totalItems
+      hasNextPage
+      hasPreviousPage
+      items {
+        chatsLocDpxid
+        userId
+        coachId
+        message
+        sentBy
+        messageType
+        isRead
+        createdAt
+        coach {
+          coachesLocDpxid
+          fullName
+          email
+        }
+      }
+    }
+  }
+`;
+
+// ===== COACH QUERIES =====
 export const GET_ALL_COACHES = gql`
   query GetAllCoaches {
     coachesLocDpxes {
@@ -146,33 +208,28 @@ export const GET_COACH_BY_ID = gql`
   }
 `;
 
-// ===== PAGINATION QUERIES (Test these second) =====
-export const GET_CHATS_WITH_PAGING = gql`
-  query GetChatsWithPaging($currentPage: Int, $pageSize: Int) {
-    chatsWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
-      totalPages
-      currentPage
-      pageSize
-      totalItems
-      items {
-        chatsLocDpxid
-        message
-        sentBy
-        messageType
-        isRead
-        createdAt
-      }
+export const GET_COACH_BY_EMAIL = gql`
+  query GetCoachByEmail($email: String!) {
+    coachByEmail(email: $email) {
+      coachesLocDpxid
+      fullName
+      email
+      phoneNumber
+      bio
+      createdAt
     }
   }
 `;
 
 export const GET_COACHES_WITH_PAGING = gql`
-  query GetCoachesWithPaging($currentPage: Int, $pageSize: Int) {
+  query GetCoachesWithPaging($currentPage: Int!, $pageSize: Int!) {
     coachesWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
       totalPages
       currentPage
       pageSize
       totalItems
+      hasNextPage
+      hasPreviousPage
       items {
         coachesLocDpxid
         fullName
@@ -185,33 +242,28 @@ export const GET_COACHES_WITH_PAGING = gql`
   }
 `;
 
-// ===== SEARCH QUERIES =====
-export const SEARCH_CHATS_WITH_PAGING = gql`
-  query SearchChatsWithPaging($request: ClassSearchChatRequest!) {
-    searchChatsWithPaging(request: $request) {
-      totalPages
-      currentPage
-      pageSize
-      totalItems
-      items {
-        chatsLocDpxid
-        message
-        sentBy
-        messageType
-        isRead
-        createdAt
-      }
+export const SEARCH_COACHES = gql`
+  query SearchCoaches($fullName: String, $email: String) {
+    searchCoaches(fullName: $fullName, email: $email) {
+      coachesLocDpxid
+      fullName
+      email
+      phoneNumber
+      bio
+      createdAt
     }
   }
 `;
 
 export const SEARCH_COACHES_WITH_PAGING = gql`
-  query SearchCoachesWithPaging($fullName: String, $email: String, $currentPage: Int, $pageSize: Int) {
+  query SearchCoachesWithPaging($fullName: String, $email: String, $currentPage: Int!, $pageSize: Int!) {
     searchCoachesWithPaging(fullName: $fullName, email: $email, currentPage: $currentPage, pageSize: $pageSize) {
       totalPages
       currentPage
       pageSize
       totalItems
+      hasNextPage
+      hasPreviousPage
       items {
         coachesLocDpxid
         fullName
@@ -224,7 +276,7 @@ export const SEARCH_COACHES_WITH_PAGING = gql`
   }
 `;
 
-// ===== MUTATIONS =====
+// ===== CHAT MUTATIONS =====
 export const CREATE_CHAT = gql`
   mutation CreateChat($createChatsLocDpxInput: ChatsLocDpxInput!) {
     createChatsLocDpx(createChatsLocDpxInput: $createChatsLocDpxInput)
@@ -243,6 +295,7 @@ export const DELETE_CHAT = gql`
   }
 `;
 
+// ===== COACH MUTATIONS =====
 export const CREATE_COACH = gql`
   mutation CreateCoach($createCoachInput: CoachesLocDpxInput!) {
     createCoachesLocDpx(createCoachInput: $createCoachInput)
@@ -261,9 +314,37 @@ export const DELETE_COACH = gql`
   }
 `;
 
+// ===== USER ACCOUNT QUERIES =====
+export const GET_USER_ACCOUNT = gql`
+  query GetUserAccount($username: String!, $password: String!) {
+    userAccount(username: $username, password: $password) {
+      userAccountId
+      userName
+      fullName
+      email
+      employeeCode
+      roleId
+      isActive
+    }
+  }
+`;
+
+export const GET_ALL_USERS = gql`
+  query GetAllUsers {
+    systemUserAccounts {
+      userAccountId
+      userName
+      fullName
+      email
+      employeeCode
+      roleId
+      isActive
+      createdDate
+    }
+  }
+`;
+
 // ===== CONVENIENCE EXPORTS =====
-// Since basic works, let's try with relations
-export const GET_CHATS = GET_ALL_CHATS_WITH_RELATIONS;
-export const GET_COACHES = GET_ALL_COACHES_BASIC;
-export const GET_ALL_COACHES_SIMPLE = GET_ALL_COACHES_BASIC;
-export const SEARCH_CHATS = SEARCH_CHATS_WITH_PAGING;
+export const GET_CHATS = GET_CHATS_WITH_PAGING;
+export const GET_COACHES = GET_COACHES_WITH_PAGING;
+export const GET_ALL_COACHES_SIMPLE = GET_ALL_COACHES;
