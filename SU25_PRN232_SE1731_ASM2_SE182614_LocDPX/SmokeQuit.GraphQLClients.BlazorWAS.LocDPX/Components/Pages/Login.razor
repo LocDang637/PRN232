@@ -28,51 +28,39 @@
                         </div>
                     }
 
-                    @if (!isRedirecting)
-                    {
-                        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
-                            <DataAnnotationsValidator />
+                    <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
 
-                            <div class="mb-3">
-                                <label for="username" class="form-label">Username</label>
-                                <InputText id="username" class="form-control" @bind-Value="loginModel.Username" placeholder="Enter your username" />
-                                <ValidationMessage For="() => loginModel.Username" />
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <InputText type="password" id="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Enter your password" />
-                                <ValidationMessage For="() => loginModel.Password" />
-                            </div>
-
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary" disabled="@isLoading">
-                                    @if (isLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-2"></span>
-                                        <span>Logging in...</span>
-                                    }
-                                    else
-                                    {
-                                        <span>Login</span>
-                                    }
-                                </button>
-                            </div>
-                        </EditForm>
-
-                        <div class="mt-3 text-center">
-                            <small class="text-muted">Demo Credentials: admin / admin</small>
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <InputText id="username" class="form-control" @bind-Value="loginModel.Username" placeholder="Enter your username" />
+                            <ValidationMessage For="() => loginModel.Username" />
                         </div>
-                    }
-                    else
-                    {
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Redirecting...</span>
-                            </div>
-                            <p class="mt-3">Redirecting to dashboard...</p>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <InputText type="password" id="password" class="form-control" @bind-Value="loginModel.Password" placeholder="Enter your password" />
+                            <ValidationMessage For="() => loginModel.Password" />
                         </div>
-                    }
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Logging in...</span>
+                                }
+                                else
+                                {
+                                    <span>Login</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">Demo Credentials: admin / admin</small>
+                    </div>
                 </div>
             </div>
         </div>
@@ -84,31 +72,15 @@
     private string errorMessage = string.Empty;
     private string successMessage = string.Empty;
     private bool isLoading = false;
-    private bool isRedirecting = false;
-
-    protected override void OnInitialized()
-    {
-        Console.WriteLine("Login page: OnInitialized called");
-        
-        // Check if already authenticated (without using JS)
-        if (AuthService.IsAuthenticated)
-        {
-            Console.WriteLine("Login page: User already authenticated, will redirect after render");
-            isRedirecting = true;
-        }
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            // Check auth state again after first render
+            // Check if already authenticated (simple check)
             if (AuthService.IsAuthenticated)
             {
                 Console.WriteLine("Login page: User already authenticated, redirecting...");
-                isRedirecting = true;
-                StateHasChanged();
-                await Task.Delay(500);
                 Navigation.NavigateTo("/chats", forceLoad: true);
             }
         }
@@ -125,60 +97,28 @@
 
             Console.WriteLine($"Login page: Attempting login for user: {loginModel.Username}");
 
-            // Call the login service
             var success = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
 
             if (success)
             {
                 Console.WriteLine("Login page: Login successful!");
-                
                 successMessage = "Login successful! Redirecting...";
-                isRedirecting = true;
                 StateHasChanged();
-                
-                // Multiple approaches to ensure navigation works
+
+                // Simple delay then navigate
                 await Task.Delay(1000);
-                
-                try
-                {
-                    // Approach 1: Standard navigation
-                    Console.WriteLine("Login page: Attempting standard navigation");
-                    Navigation.NavigateTo("/chats", forceLoad: true);
-                }
-                catch (Exception navEx)
-                {
-                    Console.WriteLine($"Login page: Standard navigation failed: {navEx.Message}");
-                    
-                    try
-                    {
-                        // Approach 2: JavaScript navigation
-                        Console.WriteLine("Login page: Attempting JavaScript navigation");
-                        await JSRuntime.InvokeVoidAsync("window.location.assign", "/chats");
-                    }
-                    catch (Exception jsEx)
-                    {
-                        Console.WriteLine($"Login page: JavaScript navigation failed: {jsEx.Message}");
-                        
-                        // Approach 3: Show manual link
-                        successMessage = "Login successful! Please click here to continue: ";
-                        errorMessage = string.Empty;
-                        isRedirecting = false;
-                        StateHasChanged();
-                    }
-                }
+                Navigation.NavigateTo("/chats", forceLoad: true);
             }
             else
             {
                 Console.WriteLine("Login page: Login failed - invalid credentials");
                 errorMessage = "Invalid username or password. Please check your credentials and try again.";
-                isRedirecting = false;
             }
         }
         catch (Exception ex)
         {
             errorMessage = $"Login failed: {ex.Message}";
             Console.WriteLine($"Login page: Login Error: {ex}");
-            isRedirecting = false;
         }
         finally
         {

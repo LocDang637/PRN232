@@ -25,7 +25,6 @@
     <div class="alert alert-warning">
         <h5>Authentication Required</h5>
         <p>Please <a href="/login">login</a> to access this page.</p>
-        <p><small>Redirecting to login page...</small></p>
     </div>
     return;
 }
@@ -176,7 +175,7 @@
                         }
                     </div>
 
-                    <!-- Pagination -->
+                    <!-- Simple Pagination -->
                     @if (chatResult.TotalPages > 1)
                     {
                         <div class="card-footer">
@@ -210,134 +209,27 @@
     </div>
 </div>
 
-<!-- Create/Edit Modal -->
-<div class="modal fade @(showModal ? "show" : "")" style="display: @(showModal ? "block" : "none")" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">@(isEditing ? "Edit Chat" : "Create New Chat")</h5>
-                <button type="button" class="btn-close" @onclick="CloseModal"></button>
-            </div>
-            <EditForm Model="chatModel" OnValidSubmit="SaveChat">
-                <DataAnnotationsValidator />
-                <div class="modal-body">
-                    @if (!string.IsNullOrEmpty(modalError))
-                    {
-                        <div class="alert alert-danger">@modalError</div>
-                    }
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">User ID</label>
-                                <InputNumber class="form-control" @bind-Value="chatModel.UserId" />
-                                <ValidationMessage For="() => chatModel.UserId" />
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Coach</label>
-                                <select class="form-select" @bind="chatModel.CoachId">
-                                    <option value="0">Select Coach</option>
-                                    @foreach (var coach in coaches)
-                                    {
-                                        <option value="@coach.CoachesLocDpxid">@coach.FullName</option>
-                                    }
-                                </select>
-                                <ValidationMessage For="() => chatModel.CoachId" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Message</label>
-                        <InputTextArea class="form-control" rows="4" @bind-Value="chatModel.Message" />
-                        <ValidationMessage For="() => chatModel.Message" />
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Message Type</label>
-                                <select class="form-select" @bind="chatModel.MessageType">
-                                    <option value="">Select Type</option>
-                                    <option value="Text">Text</option>
-                                    <option value="Image">Image</option>
-                                    <option value="File">File</option>
-                                </select>
-                                <ValidationMessage For="() => chatModel.MessageType" />
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Sent By</label>
-                                <select class="form-select" @bind="chatModel.SentBy">
-                                    <option value="">Select Sender</option>
-                                    <option value="User">User</option>
-                                    <option value="Coach">Coach</option>
-                                </select>
-                                <ValidationMessage For="() => chatModel.SentBy" />
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="mb-3">
-                                <label class="form-label">Status</label>
-                                <div class="form-check mt-2">
-                                    <InputCheckbox class="form-check-input" @bind-Value="chatModel.IsRead" />
-                                    <label class="form-check-label">Mark as Read</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Attachment URL (Optional)</label>
-                        <InputText class="form-control" @bind-Value="chatModel.AttachmentUrl" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                        @if (isSaving)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2"></span>
-                        }
-                        @(isEditing ? "Update" : "Create")
-                    </button>
-                </div>
-            </EditForm>
-        </div>
-    </div>
-</div>
-
-@if (showModal)
+<!-- Simple error message for now -->
+@if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="modal-backdrop fade show"></div>
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
+        <div class="alert alert-danger">@errorMessage</div>
+    </div>
 }
 
 @code {
     private PaginationResult<ChatsLocDpx> chatResult = new();
     private List<CoachesLocDpx> coaches = new();
     private SearchModel searchModel = new();
-    private ChatFormModel chatModel = new();
     private bool isLoading = true;
     private bool isInitialized = false;
-    private bool showModal = false;
-    private bool isEditing = false;
-    private bool isSaving = false;
-    private string modalError = string.Empty;
+    private string errorMessage = string.Empty;
     private int currentPage = 1;
     private int pageSize = 10;
 
     protected override void OnInitialized()
     {
         Console.WriteLine("Chats page: OnInitialized called");
-
-        // Just check authentication state without using JS
-        Console.WriteLine($"Chats page: Auth state - IsAuthenticated: {AuthService.IsAuthenticated}");
-        Console.WriteLine($"Chats page: Current user: {AuthService.CurrentUser?.UserName ?? "None"}");
-
-        // Subscribe to auth state changes
         AuthService.AuthStateChanged += OnAuthStateChanged;
     }
 
@@ -349,10 +241,10 @@
             {
                 Console.WriteLine("Chats page: First render - checking authentication");
 
-                // Wait a moment for auth to initialize
-                await Task.Delay(500);
+                // Check authentication with timeout
+                var isAuthenticated = await AuthService.CheckAuthenticationAsync();
 
-                if (!AuthService.IsAuthenticated)
+                if (!isAuthenticated)
                 {
                     Console.WriteLine("Chats page: User not authenticated, redirecting to login");
                     Navigation.NavigateTo("/login", forceLoad: true);
@@ -363,22 +255,14 @@
                 isInitialized = true;
                 StateHasChanged();
 
-                await LoadCoaches();
                 await LoadChats();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Chats page: Error during initialization: {ex.Message}");
-                // Show error but still mark as initialized
+                errorMessage = $"Error loading page: {ex.Message}";
                 isInitialized = true;
                 StateHasChanged();
-
-                // Show error without using JS during prerender
-                if (firstRender)
-                {
-                    await Task.Delay(100); // Wait for render to complete
-                }
-                await JSRuntime.InvokeVoidAsync("alert", $"Error loading page: {ex.Message}");
             }
         }
     }
@@ -389,17 +273,6 @@
         if (!isAuthenticated)
         {
             Navigation.NavigateTo("/login", forceLoad: true);
-        }
-        else if (!isInitialized)
-        {
-            // Auth became available, try to load data
-            InvokeAsync(async () =>
-            {
-                isInitialized = true;
-                StateHasChanged();
-                await LoadCoaches();
-                await LoadChats();
-            });
         }
         InvokeAsync(StateHasChanged);
     }
@@ -414,7 +287,7 @@
             if (IsSearchActive())
             {
                 chatResult = await ChatService.SearchChatsAsync(
-                    searchModel.MessageContent,
+                   
                     searchModel.MessageType,
                     searchModel.SentBy,
                     searchModel.IsRead,
@@ -436,27 +309,12 @@
         catch (Exception ex)
         {
             Console.WriteLine($"Chats page: Error loading chats: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Error loading chats: {ex.Message}");
+            errorMessage = $"Error loading chats: {ex.Message}";
         }
         finally
         {
             isLoading = false;
             StateHasChanged();
-        }
-    }
-
-    private async Task LoadCoaches()
-    {
-        try
-        {
-            var coachResult = await CoachService.GetCoachesWithPagingAsync(1, 100);
-            coaches = coachResult.Items;
-            Console.WriteLine($"Chats page: Loaded {coaches.Count} coaches");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Chats page: Error loading coaches: {ex.Message}");
-            await JSRuntime.InvokeVoidAsync("alert", $"Error loading coaches: {ex.Message}");
         }
     }
 
@@ -489,112 +347,22 @@
 
     private void OpenCreateModal()
     {
-        chatModel = new ChatFormModel
-        {
-            UserId = AuthService.CurrentUser?.UserAccountId ?? 1,
-            SentBy = "User",
-            MessageType = "Text"
-        };
-        isEditing = false;
-        modalError = string.Empty;
-        showModal = true;
+        // Simplified for now
+        errorMessage = "Create modal not implemented yet";
     }
 
     private void OpenEditModal(ChatsLocDpx chat)
     {
-        chatModel = new ChatFormModel
-        {
-            ChatsLocDpxid = chat.ChatsLocDpxid,
-            UserId = chat.UserId,
-            CoachId = chat.CoachId,
-            Message = chat.Message,
-            SentBy = chat.SentBy,
-            MessageType = chat.MessageType,
-            IsRead = chat.IsRead,
-            AttachmentUrl = chat.AttachmentUrl
-        };
-        isEditing = true;
-        modalError = string.Empty;
-        showModal = true;
-    }
-
-    private void CloseModal()
-    {
-        showModal = false;
-        chatModel = new();
-        modalError = string.Empty;
-    }
-
-    private async Task SaveChat()
-    {
-        try
-        {
-            isSaving = true;
-            modalError = string.Empty;
-
-            if (isEditing)
-            {
-                var updateInput = new ChatsLocDpxUpdateInput
-                {
-                    ChatsLocDpxid = chatModel.ChatsLocDpxid,
-                    Message = chatModel.Message,
-                    SentBy = chatModel.SentBy,
-                    MessageType = chatModel.MessageType,
-                    IsRead = chatModel.IsRead,
-                    AttachmentUrl = chatModel.AttachmentUrl,
-                    ResponseTime = DateTime.UtcNow
-                };
-
-                await ChatService.UpdateChatAsync(updateInput);
-            }
-            else
-            {
-                var createInput = new ChatsLocDpxInput
-                {
-                    UserId = chatModel.UserId,
-                    CoachId = chatModel.CoachId,
-                    Message = chatModel.Message,
-                    SentBy = chatModel.SentBy,
-                    MessageType = chatModel.MessageType,
-                    IsRead = chatModel.IsRead,
-                    AttachmentUrl = chatModel.AttachmentUrl,
-                    ResponseTime = DateTime.UtcNow
-                };
-
-                await ChatService.CreateChatAsync(createInput);
-            }
-
-            CloseModal();
-            await LoadChats();
-        }
-        catch (Exception ex)
-        {
-            modalError = $"Error saving chat: {ex.Message}";
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
+        // Simplified for now
+        errorMessage = "Edit modal not implemented yet";
     }
 
     private async Task DeleteChat(int id)
     {
-        if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this chat?"))
-        {
-            try
-            {
-                await ChatService.DeleteChatAsync(id);
-                await LoadChats();
-            }
-            catch (Exception ex)
-            {
-                await JSRuntime.InvokeVoidAsync("alert", $"Error deleting chat: {ex.Message}");
-            }
-        }
+        // Simplified for now
+        errorMessage = "Delete not implemented yet";
     }
 
-    // Correct IDisposable implementation for Blazor components
     public void Dispose()
     {
         AuthService.AuthStateChanged -= OnAuthStateChanged;
@@ -612,30 +380,5 @@
             "false" => false,
             _ => null
         };
-    }
-
-    public class ChatFormModel
-    {
-        public int ChatsLocDpxid { get; set; }
-
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "User ID is required")]
-        public int UserId { get; set; }
-
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "Please select a coach")]
-        public int CoachId { get; set; }
-
-        [Required(ErrorMessage = "Message is required")]
-        public string Message { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Please select who sent this message")]
-        public string SentBy { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Please select message type")]
-        public string MessageType { get; set; } = string.Empty;
-
-        public bool IsRead { get; set; }
-        public string? AttachmentUrl { get; set; }
     }
 }

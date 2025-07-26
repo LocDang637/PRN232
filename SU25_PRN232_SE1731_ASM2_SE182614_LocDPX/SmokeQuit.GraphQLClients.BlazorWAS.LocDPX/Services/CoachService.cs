@@ -15,7 +15,7 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         {
             var query = @"
                 query GetCoachesWithPaging($currentPage: Int!, $pageSize: Int!) {
-                    getCoachesWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
+                    coachesWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
                         totalItems
                         totalPages
                         currentPage
@@ -34,8 +34,8 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
                 }";
 
             var variables = new { currentPage, pageSize };
-            var result = await _graphQLService.QueryAsync<CoachesResponse>(query, variables);
-            return result?.GetCoachesWithPaging ?? new PaginationResult<CoachesLocDpx>();
+            var result = await _graphQLService.QueryAsync<CoachesWithPagingResponse>(query, variables);
+            return result?.CoachesWithPaging ?? new PaginationResult<CoachesLocDpx>();
         }
 
         public async Task<PaginationResult<CoachesLocDpx>> SearchCoachesAsync(string? fullName, string? email, int currentPage = 1, int pageSize = 10)
@@ -61,18 +61,37 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
                 }";
 
             var variables = new { fullName, email, currentPage, pageSize };
-            var result = await _graphQLService.QueryAsync<SearchCoachesResponse>(query, variables);
+            var result = await _graphQLService.QueryAsync<SearchCoachesWithPagingResponse>(query, variables);
             return result?.SearchCoachesWithPaging ?? new PaginationResult<CoachesLocDpx>();
+        }
+
+        // Get all coaches for dropdowns (simple list)
+        public async Task<List<CoachesLocDpx>> GetAllCoachesAsync()
+        {
+            var query = @"
+                query GetAllCoaches {
+                    coachesLocDpxes {
+                        coachesLocDpxid
+                        fullName
+                        email
+                        phoneNumber
+                        bio
+                        createdAt
+                    }
+                }";
+
+            var result = await _graphQLService.QueryAsync<AllCoachesResponse>(query);
+            return result?.CoachesLocDpxes ?? new List<CoachesLocDpx>();
         }
 
         public async Task<int> CreateCoachAsync(CoachesLocDpxInput input)
         {
             var mutation = @"
-                mutation CreateCoach($input: CoachesLocDpxInput!) {
-                    createCoachesLocDpx(createCoachInput: $input)
+                mutation CreateCoach($createCoachInput: CoachesLocDpxInput!) {
+                    createCoachesLocDpx(createCoachInput: $createCoachInput)
                 }";
 
-            var variables = new { input };
+            var variables = new { createCoachInput = input };
             var result = await _graphQLService.QueryAsync<CreateCoachResponse>(mutation, variables);
             return result?.CreateCoachesLocDpx ?? 0;
         }
@@ -80,11 +99,11 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         public async Task<int> UpdateCoachAsync(CoachesLocDpxUpdateInput input)
         {
             var mutation = @"
-                mutation UpdateCoach($input: CoachesLocDpxUpdateInput!) {
-                    updateCoachesLocDpx(updateCoachInput: $input)
+                mutation UpdateCoach($updateCoachInput: CoachesLocDpxUpdateInput!) {
+                    updateCoachesLocDpx(updateCoachInput: $updateCoachInput)
                 }";
 
-            var variables = new { input };
+            var variables = new { updateCoachInput = input };
             var result = await _graphQLService.QueryAsync<UpdateCoachResponse>(mutation, variables);
             return result?.UpdateCoachesLocDpx ?? 0;
         }
@@ -102,14 +121,20 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         }
     }
 
-    public class CoachesResponse
+    // Response classes
+    public class CoachesWithPagingResponse
     {
-        public PaginationResult<CoachesLocDpx> GetCoachesWithPaging { get; set; } = new();
+        public PaginationResult<CoachesLocDpx> CoachesWithPaging { get; set; } = new();
     }
 
-    public class SearchCoachesResponse
+    public class SearchCoachesWithPagingResponse
     {
         public PaginationResult<CoachesLocDpx> SearchCoachesWithPaging { get; set; } = new();
+    }
+
+    public class AllCoachesResponse
+    {
+        public List<CoachesLocDpx> CoachesLocDpxes { get; set; } = new();
     }
 
     public class CreateCoachResponse

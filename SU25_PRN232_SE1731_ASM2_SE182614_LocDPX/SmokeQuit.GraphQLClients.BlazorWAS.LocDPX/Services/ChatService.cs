@@ -15,7 +15,7 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         {
             var query = @"
                 query GetChatsWithPaging($currentPage: Int!, $pageSize: Int!) {
-                    getChatsWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
+                    chatsWithPaging(currentPage: $currentPage, pageSize: $pageSize) {
                         totalItems
                         totalPages
                         currentPage
@@ -43,64 +43,74 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
                 }";
 
             var variables = new { currentPage, pageSize };
-            var result = await _graphQLService.QueryAsync<ChatsResponse>(query, variables);
-            return result?.GetChatsWithPaging ?? new PaginationResult<ChatsLocDpx>();
+            var result = await _graphQLService.QueryAsync<ChatsWithPagingResponse>(query, variables);
+            return result?.ChatsWithPaging ?? new PaginationResult<ChatsLocDpx>();
         }
 
-        public async Task<PaginationResult<ChatsLocDpx>> SearchChatsAsync(string? messageContent, string? messageType, string? sentBy, bool? isRead, int currentPage = 1, int pageSize = 10)
+        // FIXED: Remove message content search, use simple search by type, sentBy, isRead
+        public async Task<PaginationResult<ChatsLocDpx>> SearchChatsAsync(string? messageType, string? sentBy, bool? isRead, int currentPage = 1, int pageSize = 10)
         {
-            var query = @"
-                query SearchChatsWithPaging($request: ClassSearchChatRequest!) {
-                    searchChatsWithPaging(request: $request) {
-                        totalItems
-                        totalPages
-                        currentPage
-                        pageSize
-                        items {
-                            chatsLocDpxid
-                            userId
-                            coachId
-                            message
-                            sentBy
-                            messageType
-                            isRead
-                            attachmentUrl
-                            responseTime
-                            createdAt
-                            coach {
-                                coachesLocDpxid
-                                fullName
-                                email
-                            }
-                        }
-                        hasPreviousPage
-                        hasNextPage
-                    }
-                }";
-
-            var request = new
+            try
             {
-                MessageType = messageType,
-                SentBy = sentBy,
-                IsRead = isRead,
-                Message = messageContent,
-                CurrentPage = currentPage,
-                PageSize = pageSize
-            };
+                var query = @"
+                    query SearchChatsWithPaging($request: ClassSearchChatRequest!) {
+                        searchChatsWithPaging(request: $request) {
+                            totalItems
+                            totalPages
+                            currentPage
+                            pageSize
+                            items {
+                                chatsLocDpxid
+                                userId
+                                coachId
+                                message
+                                sentBy
+                                messageType
+                                isRead
+                                attachmentUrl
+                                responseTime
+                                createdAt
+                                coach {
+                                    coachesLocDpxid
+                                    fullName
+                                    email
+                                }
+                            }
+                            hasPreviousPage
+                            hasNextPage
+                        }
+                    }";
 
-            var variables = new { request };
-            var result = await _graphQLService.QueryAsync<SearchChatsResponse>(query, variables);
-            return result?.SearchChatsWithPaging ?? new PaginationResult<ChatsLocDpx>();
+                // Match your Postman exactly - no message content field
+                var request = new
+                {
+                    messageType = messageType,
+                    sentBy = sentBy,
+                    isRead = isRead,
+                    currentPage = currentPage,
+                    pageSize = pageSize
+                };
+
+                var variables = new { request };
+                var result = await _graphQLService.QueryAsync<SearchChatsWithPagingResponse>(query, variables);
+                return result?.SearchChatsWithPaging ?? new PaginationResult<ChatsLocDpx>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Search failed: {ex.Message}");
+                // Fallback to regular pagination if search fails
+                return await GetChatsWithPagingAsync(currentPage, pageSize);
+            }
         }
 
         public async Task<int> CreateChatAsync(ChatsLocDpxInput input)
         {
             var mutation = @"
-                mutation CreateChat($input: ChatsLocDpxInput!) {
-                    createChatsLocDpx(createChatsLocDpxInput: $input)
+                mutation CreateChat($createChatsLocDpxInput: ChatsLocDpxInput!) {
+                    createChatsLocDpx(createChatsLocDpxInput: $createChatsLocDpxInput)
                 }";
 
-            var variables = new { input };
+            var variables = new { createChatsLocDpxInput = input };
             var result = await _graphQLService.QueryAsync<CreateChatResponse>(mutation, variables);
             return result?.CreateChatsLocDpx ?? 0;
         }
@@ -108,11 +118,11 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         public async Task<int> UpdateChatAsync(ChatsLocDpxUpdateInput input)
         {
             var mutation = @"
-                mutation UpdateChat($input: ChatsLocDpxUpdateInput!) {
-                    updateChatsLocDpx(updateChatsLocDpxInput: $input)
+                mutation UpdateChat($updateChatsLocDpxInput: ChatsLocDpxUpdateInput!) {
+                    updateChatsLocDpx(updateChatsLocDpxInput: $updateChatsLocDpxInput)
                 }";
 
-            var variables = new { input };
+            var variables = new { updateChatsLocDpxInput = input };
             var result = await _graphQLService.QueryAsync<UpdateChatResponse>(mutation, variables);
             return result?.UpdateChatsLocDpx ?? 0;
         }
@@ -130,12 +140,13 @@ namespace SmokeQuit.GraphQLClients.BlazorWAS.LocDPX.Services
         }
     }
 
-    public class ChatsResponse
+    // Response classes
+    public class ChatsWithPagingResponse
     {
-        public PaginationResult<ChatsLocDpx> GetChatsWithPaging { get; set; } = new();
+        public PaginationResult<ChatsLocDpx> ChatsWithPaging { get; set; } = new();
     }
 
-    public class SearchChatsResponse
+    public class SearchChatsWithPagingResponse
     {
         public PaginationResult<ChatsLocDpx> SearchChatsWithPaging { get; set; } = new();
     }

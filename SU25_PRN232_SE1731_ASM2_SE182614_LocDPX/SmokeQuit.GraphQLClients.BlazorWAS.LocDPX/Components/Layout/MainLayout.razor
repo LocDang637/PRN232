@@ -13,19 +13,7 @@
         </div>
 
         <article class="content px-4">
-            @if (isInitialized)
-            {
-                @Body
-            }
-            else
-            {
-                <div class="text-center py-5">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Initializing...</span>
-                    </div>
-                    <p class="mt-3">Loading application...</p>
-                </div>
-            }
+            @Body
         </article>
     </main>
 </div>
@@ -37,37 +25,10 @@
 </div>
 
 @code {
-    private bool isInitialized = false;
-
     protected override void OnInitialized()
     {
-        // Subscribe to auth state changes immediately
         AuthService.AuthStateChanged += OnAuthStateChanged;
-        Console.WriteLine("MainLayout: Subscribed to auth state changes");
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && !isInitialized)
-        {
-            try
-            {
-                Console.WriteLine("MainLayout: First render - initializing authentication");
-
-                // Initialize authentication state (this can use JS now)
-                await AuthService.InitializeAsync();
-                isInitialized = true;
-
-                Console.WriteLine("MainLayout: Authentication initialized successfully");
-                StateHasChanged();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"MainLayout: Authentication initialization error: {ex.Message}");
-                isInitialized = true; // Still show the app even if auth init fails
-                StateHasChanged();
-            }
-        }
+        Console.WriteLine("MainLayout: Subscribed to auth state changes - NO AUTH INIT");
     }
 
     private void OnAuthStateChanged(bool isAuthenticated)
